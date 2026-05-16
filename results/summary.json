@@ -1,0 +1,10 @@
+{
+  "total_score": 9.834978627476351,
+  "reported_metrics": {
+    "feasible_cases": "100/100",
+    "average_cost": 6.7683,
+    "total_score": 9.835,
+    "average_runtime_seconds": 0.0481,
+    "tests": "2/2 passed"
+  }
+}

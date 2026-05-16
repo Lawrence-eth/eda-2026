@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Downloaded/generated contest artifacts
+external/FloorSet/LiteTensorDataTest/
+external/FloorSet/LiteTensorData/
+external/FloorSet/iccad2026contest/my_optimizer_solutions.json
+
+# Local env
+.env
