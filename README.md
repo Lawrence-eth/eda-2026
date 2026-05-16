@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 5.6087
-- Average cost: 3.9135
-- Average runtime: 0.1907 seconds
-- Average HPWL gap: 1.6257
-- Average area gap: 1.4171
-- Average soft violation ratio: 0.1722
-- Worst per-case cost: 7.8052
+- Total score: 5.0922
+- Average cost: 3.7407
+- Average runtime: 0.2092 seconds
+- Average HPWL gap: 1.6636
+- Average area gap: 1.6517
+- Average soft violation ratio: 0.1392
+- Worst per-case cost: 7.1122
 - Unit tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -53,6 +53,7 @@ Main components:
 - exact soft-block target areas;
 - overlap-free constructive placement;
 - perimeter placement for movable boundary-constrained blocks;
+- boundary-aware cluster packing for same-edge boundary clusters;
 - MIB dimension normalization when target-area constraints allow a shared shape;
 - cluster-aware macro packing for non-boundary cluster groups;
 - compact cluster-local shelf packing to avoid long, sparse group chains;
@@ -73,7 +74,7 @@ The current implementation focuses on reducing the main soft-constraint and plac
 Soft-constraint diagnostics on the 100-case validation run:
 
 - boundary violations: 122
-- grouping violations: 581
+- grouping violations: 436
 - MIB violations: 55
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.
@@ -108,7 +109,6 @@ bash scripts/setup_and_evaluate.sh
 
 ## Next improvement directions
 
-- Boundary-aware cluster packing for clusters that include boundary-constrained blocks.
 - Local swap/shift refinement to reduce HPWL without increasing soft violations.
 - Analytical or force-directed placement before legalization.
 - Better MIB handling for groups with incompatible target areas.
