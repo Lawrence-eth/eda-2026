@@ -1,6 +1,6 @@
 {
-  "reported_metrics": {
-    "validation_set": "LiteTensorDataTest, 100 cases",
+  "validation_set": "LiteTensorDataTest, 100 cases",
+  "metrics": {
     "feasible_cases": "100/100",
     "total_score": 5.6087,
     "average_cost": 3.9135,
@@ -12,19 +12,13 @@
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
-  "baseline_before_improvement": {
-    "total_score": "about 9.76-9.84",
-    "average_cost": "about 6.75",
-    "feasible_cases": "100/100"
-  },
-  "soft_violation_totals_after": {
+  "soft_violation_totals": {
     "boundary": 122,
     "grouping": 581,
     "mib": 55
   },
-  "soft_violation_totals_before": {
-    "boundary": 464,
-    "grouping": 1422,
-    "mib": 55
-  }
+  "notes": [
+    "Lower score is better under the contest cost function.",
+    "Some remaining soft violations reflect hard-constraint tradeoffs such as fixed preplacements and incompatible MIB target areas."
+  ]
 }
