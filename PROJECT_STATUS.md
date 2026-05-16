@@ -25,19 +25,20 @@ The optimizer is a constructive heuristic:
 - packs same-edge boundary clusters as perimeter macro-blocks when this is beneficial for the validation-size range;
 - uses connectivity-weighted ordering and adaptive shelf widths for score/runtime balance.
 - preprocesses connectivity into lightweight tuples on large cases to reduce repeated tensor-iteration overhead.
+- tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
 
 ## Validation Results
 
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 3.7915
-- Average cost: 3.6696
-- Average runtime: 0.1410s
-- Average HPWL gap: 1.6599
-- Average area gap: 1.6279
-- Average soft violation ratio: 0.1382
-- Worst per-case cost: 7.3814
+- Total score: 3.0228
+- Average cost: 3.7062
+- Average runtime: 0.5466s
+- Average HPWL gap: 1.6076
+- Average area gap: 1.5310
+- Average soft violation ratio: 0.1385
+- Worst per-case cost: 8.7392
 - Tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -60,7 +61,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 431 total
+- grouping violations: 430 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.

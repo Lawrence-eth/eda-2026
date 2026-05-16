@@ -26,17 +26,48 @@ Rect = Tuple[float, float, float, float]
 class MyOptimizer(FloorplanOptimizer):
     def __init__(self, verbose: bool = False):
         super().__init__(verbose)
+        self._row_factor = 0.90
+        self._small_cluster_factor = 1.50
+        self._large_cluster_factor = 1.34
 
     def solve(self, block_count: int, area_targets: torch.Tensor, b2b_connectivity: torch.Tensor,
               p2b_connectivity: torch.Tensor, pins_pos: torch.Tensor, constraints: torch.Tensor,
               target_positions: torch.Tensor = None) -> List[Rect]:
-        dims = self._choose_dimensions(block_count, area_targets, constraints, target_positions)
         if block_count >= 100:
             b2b_edges = self._b2b_edges(b2b_connectivity)
             p2b_edges = self._p2b_edges(p2b_connectivity)
         else:
             b2b_edges = b2b_connectivity
             p2b_edges = p2b_connectivity
+
+        variants = self._layout_variants(block_count)
+        best_positions = None
+        best_cost = float("inf")
+        original = (self._row_factor, self._small_cluster_factor, self._large_cluster_factor)
+        try:
+            for row_factor, small_cluster, large_cluster in variants:
+                self._row_factor = row_factor
+                self._small_cluster_factor = small_cluster
+                self._large_cluster_factor = large_cluster
+                positions = self._construct_layout(
+                    block_count, area_targets, b2b_connectivity, p2b_connectivity,
+                    pins_pos, constraints, target_positions, b2b_edges, p2b_edges
+                )
+                cost = self._selection_cost(
+                    positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
+                )
+                if cost < best_cost:
+                    best_cost = cost
+                    best_positions = positions
+        finally:
+            self._row_factor, self._small_cluster_factor, self._large_cluster_factor = original
+
+        return best_positions if best_positions is not None else []
+
+    def _construct_layout(self, block_count: int, area_targets: torch.Tensor, b2b_connectivity: torch.Tensor,
+                          p2b_connectivity: torch.Tensor, pins_pos: torch.Tensor, constraints: torch.Tensor,
+                          target_positions: torch.Tensor, b2b_edges, p2b_edges) -> List[Rect]:
+        dims = self._choose_dimensions(block_count, area_targets, constraints, target_positions)
         positions: List[Rect | None] = [None] * block_count
         preplaced = set()
         if constraints is not None and constraints.dim() > 1 and constraints.shape[1] > 1:
@@ -91,6 +122,18 @@ class MyOptimizer(FloorplanOptimizer):
 
         return [self._clean_tuple(p) for p in positions]  # type: ignore[arg-type]
 
+    def _layout_variants(self, block_count):
+        variants = [(0.90, 1.50, 1.34)]
+        if block_count < 60:
+            variants.extend([(0.90, 2.00, 1.34), (0.90, 1.80, 1.34)])
+        elif block_count < 90:
+            variants.extend([(0.90, 1.30, 1.34), (0.90, 1.40, 1.34)])
+        elif block_count < 100:
+            variants.extend([(0.86, 1.50, 1.34), (0.90, 1.30, 1.34), (1.00, 1.50, 1.34)])
+        elif block_count < 120:
+            variants.extend([(1.00, 1.50, 1.34), (0.90, 1.52, 1.34), (0.90, 1.30, 1.34)])
+        return variants
+
     def _pack_interior_units(self, interior, dims, constraints, area_targets, b2b_connectivity,
                              p2b_connectivity, start_x, start_y) -> Dict[int, Rect]:
         if not interior:
@@ -121,7 +164,7 @@ class MyOptimizer(FloorplanOptimizer):
         total_area = sum(u['w'] * u['h'] for u in units)
         max_w = max(u['w'] for u in units)
         # Slightly wider rows reduce HPWL/area for macro clusters while staying fast.
-        row_width = max(math.sqrt(max(total_area, 1.0)) * 0.9, max_w)
+        row_width = max(math.sqrt(max(total_area, 1.0)) * self._row_factor, max_w)
         out: Dict[int, Rect] = {}
         x = start_x
         y = start_y
@@ -214,7 +257,7 @@ class MyOptimizer(FloorplanOptimizer):
             return {}, 0.0, 0.0
         ordered = sorted(group, key=lambda i: (-dims[i][1], -dims[i][0], i))
         total_area = sum(dims[i][0] * dims[i][1] for i in ordered)
-        cluster_factor = 1.34 if len(dims) >= 120 else 1.50
+        cluster_factor = self._large_cluster_factor if len(dims) >= 120 else self._small_cluster_factor
         row_width = max(math.sqrt(max(total_area, 1.0)) * cluster_factor, max(dims[i][0] for i in ordered))
         local = {}
         x = 0.0
@@ -456,6 +499,86 @@ class MyOptimizer(FloorplanOptimizer):
                         degree += w
         area = sum(float(area_targets[i]) for i in blocks)
         return (-degree, -area, min(blocks))
+
+    def _selection_cost(self, positions, constraints, area_targets, b2b_connectivity,
+                        p2b_connectivity, pins_pos):
+        bbox_area = calculate_bbox_area(positions)
+        hpwl = calculate_hpwl_b2b(positions, b2b_connectivity) + calculate_hpwl_p2b(
+            positions, p2b_connectivity, pins_pos
+        )
+        soft = self._soft_violation_count(positions, constraints)
+        target_area = sum(float(a) for a in area_targets[:len(positions)] if a > 0)
+        area_scale = max(math.sqrt(max(target_area, 1.0)), 1.0)
+        return hpwl + 0.08 * bbox_area + soft * area_scale * 180.0
+
+    def _soft_violation_count(self, positions, constraints):
+        if constraints is None or constraints.dim() <= 1 or len(constraints) < len(positions):
+            return 0
+        n = len(positions)
+        ncols = constraints.shape[1]
+        violations = 0
+        if ncols > 4:
+            x_min = min(p[0] for p in positions)
+            y_min = min(p[1] for p in positions)
+            x_max = max(p[0] + p[2] for p in positions)
+            y_max = max(p[1] + p[3] for p in positions)
+            for i in range(n):
+                code = int(constraints[i, 4].item())
+                if code == 0:
+                    continue
+                x, y, w, h = positions[i]
+                if code & 1 and abs(x - x_min) >= 1e-6:
+                    violations += 1
+                    continue
+                if code & 2 and abs(x + w - x_max) >= 1e-6:
+                    violations += 1
+                    continue
+                if code & 4 and abs(y + h - y_max) >= 1e-6:
+                    violations += 1
+                    continue
+                if code & 8 and abs(y - y_min) >= 1e-6:
+                    violations += 1
+        if ncols > 3:
+            max_gid = int(constraints[:n, 3].max().item()) if n else 0
+            for gid in range(1, max_gid + 1):
+                group = [i for i in range(n) if int(constraints[i, 3].item()) == gid]
+                if len(group) > 1:
+                    violations += self._group_components(positions, group) - 1
+        if ncols > 2:
+            max_gid = int(constraints[:n, 2].max().item()) if n else 0
+            for gid in range(1, max_gid + 1):
+                shapes = {
+                    (round(positions[i][2], 4), round(positions[i][3], 4))
+                    for i in range(n) if int(constraints[i, 2].item()) == gid
+                }
+                violations += max(0, len(shapes) - 1)
+        return violations
+
+    def _group_components(self, positions, group):
+        parent = {i: i for i in group}
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        def union(a, b):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[rb] = ra
+
+        for pos, i in enumerate(group):
+            x1, y1, w1, h1 = positions[i]
+            for j in group[pos + 1:]:
+                x2, y2, w2, h2 = positions[j]
+                y_overlap = min(y1 + h1, y2 + h2) - max(y1, y2)
+                x_overlap = min(x1 + w1, x2 + w2) - max(x1, x2)
+                touch_x = abs(x1 + w1 - x2) < 1e-6 or abs(x2 + w2 - x1) < 1e-6
+                touch_y = abs(y1 + h1 - y2) < 1e-6 or abs(y2 + h2 - y1) < 1e-6
+                if (touch_x and y_overlap > 1e-6) or (touch_y and x_overlap > 1e-6):
+                    union(i, j)
+        return len({find(i) for i in group})
 
     def _order_blocks(self, blocks, area_targets, b2b_connectivity, p2b_connectivity):
         degree = {i: 0.0 for i in blocks}; s = set(blocks)
