@@ -2,23 +2,23 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 3.0228,
-    "average_cost": 3.7062,
-    "average_runtime_seconds": 0.5466,
-    "average_hpwl_gap": 1.6076,
-    "average_area_gap": 1.531,
-    "average_soft_violation_ratio": 0.1385,
-    "worst_case_cost": 8.7392,
+    "total_score": 2.8795,
+    "average_cost": 3.7664,
+    "average_runtime_seconds": 0.5292,
+    "average_hpwl_gap": 1.6114,
+    "average_area_gap": 1.5397,
+    "average_soft_violation_ratio": 0.1386,
+    "worst_case_cost": 9.0556,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
   "soft_violation_totals": {
     "boundary": 122,
-    "grouping": 430,
+    "grouping": 431,
     "mib": 55
   },
   "notes": [
     "Lower score is better under the contest cost function.",
-    "Bounded adaptive layout variants improve weighted validation score while preserving hard feasibility."
+    "Large-case variant pruning and a tuned 120-block row factor improve weighted validation score while preserving hard feasibility."
   ]
 }

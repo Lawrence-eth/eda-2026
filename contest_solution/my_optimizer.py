@@ -123,6 +123,8 @@ class MyOptimizer(FloorplanOptimizer):
         return [self._clean_tuple(p) for p in positions]  # type: ignore[arg-type]
 
     def _layout_variants(self, block_count):
+        if block_count >= 120:
+            return [(0.88, 1.50, 1.34)]
         variants = [(0.90, 1.50, 1.34)]
         if block_count < 60:
             variants.extend([(0.90, 2.00, 1.34), (0.90, 1.80, 1.34)])
@@ -130,8 +132,10 @@ class MyOptimizer(FloorplanOptimizer):
             variants.extend([(0.90, 1.30, 1.34), (0.90, 1.40, 1.34)])
         elif block_count < 100:
             variants.extend([(0.86, 1.50, 1.34), (0.90, 1.30, 1.34), (1.00, 1.50, 1.34)])
-        elif block_count < 120:
+        elif block_count < 110:
             variants.extend([(1.00, 1.50, 1.34), (0.90, 1.52, 1.34), (0.90, 1.30, 1.34)])
+        elif block_count < 120:
+            pass
         return variants
 
     def _pack_interior_units(self, interior, dims, constraints, area_targets, b2b_connectivity,
