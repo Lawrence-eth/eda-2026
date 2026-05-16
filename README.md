@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 2.8795
-- Average cost: 3.7664
-- Average runtime: 0.5292 seconds
-- Average HPWL gap: 1.6114
-- Average area gap: 1.5397
-- Average soft violation ratio: 0.1386
-- Worst per-case cost: 9.0556
+- Total score: 2.8463
+- Average cost: 3.7590
+- Average runtime: 0.5149 seconds
+- Average HPWL gap: 1.6107
+- Average area gap: 1.5386
+- Average soft violation ratio: 0.1384
+- Worst per-case cost: 9.0629
 - Unit tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -77,7 +77,7 @@ The current implementation focuses on reducing the main soft-constraint and plac
 Soft-constraint diagnostics on the 100-case validation run:
 
 - boundary violations: 122
-- grouping violations: 431
+- grouping violations: 430
 - MIB violations: 55
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.

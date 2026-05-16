@@ -125,6 +125,12 @@ class MyOptimizer(FloorplanOptimizer):
     def _layout_variants(self, block_count):
         if block_count >= 120:
             return [(0.88, 1.50, 1.34)]
+        if block_count >= 119:
+            return [(0.88, 1.50, 1.34)]
+        if block_count >= 118:
+            return [(0.82, 1.20, 1.34)]
+        if block_count >= 117:
+            return [(1.00, 1.20, 1.34)]
         variants = [(0.90, 1.50, 1.34)]
         if block_count < 60:
             variants.extend([(0.90, 2.00, 1.34), (0.90, 1.80, 1.34)])
