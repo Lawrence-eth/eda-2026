@@ -214,7 +214,8 @@ class MyOptimizer(FloorplanOptimizer):
             return {}, 0.0, 0.0
         ordered = sorted(group, key=lambda i: (-dims[i][1], -dims[i][0], i))
         total_area = sum(dims[i][0] * dims[i][1] for i in ordered)
-        row_width = max(math.sqrt(max(total_area, 1.0)) * 1.55, max(dims[i][0] for i in ordered))
+        cluster_factor = 1.34 if len(dims) >= 120 else 1.50
+        row_width = max(math.sqrt(max(total_area, 1.0)) * cluster_factor, max(dims[i][0] for i in ordered))
         local = {}
         x = 0.0
         y = 0.0
