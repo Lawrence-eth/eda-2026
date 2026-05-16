@@ -24,19 +24,20 @@ The optimizer is a constructive heuristic:
 - packs non-boundary cluster groups as connected macro-blocks;
 - packs same-edge boundary clusters as perimeter macro-blocks when this is beneficial for the validation-size range;
 - uses connectivity-weighted ordering and tuned shelf widths for score/runtime balance.
+- preprocesses connectivity into lightweight tuples on large cases to reduce repeated tensor-iteration overhead.
 
 ## Validation Results
 
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 5.0922
-- Average cost: 3.7407
-- Average runtime: 0.2092s
+- Total score: 3.8289
+- Average cost: 3.7583
+- Average runtime: 0.1381s
 - Average HPWL gap: 1.6636
 - Average area gap: 1.6517
 - Average soft violation ratio: 0.1392
-- Worst per-case cost: 7.1122
+- Worst per-case cost: 7.7700
 - Tests: 2 / 2 passed
 - Official validator: PASSED
 

@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 5.0922
-- Average cost: 3.7407
-- Average runtime: 0.2092 seconds
+- Total score: 3.8289
+- Average cost: 3.7583
+- Average runtime: 0.1381 seconds
 - Average HPWL gap: 1.6636
 - Average area gap: 1.6517
 - Average soft violation ratio: 0.1392
-- Worst per-case cost: 7.1122
+- Worst per-case cost: 7.7700
 - Unit tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -58,6 +58,7 @@ Main components:
 - cluster-aware macro packing for non-boundary cluster groups;
 - compact cluster-local shelf packing to avoid long, sparse group chains;
 - precomputed connectivity degrees for efficient ordering;
+- tuple-based connectivity preprocessing for large validation cases;
 - tuned row-width parameters for score/runtime balance.
 
 ## Quality improvements

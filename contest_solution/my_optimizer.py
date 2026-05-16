@@ -31,6 +31,12 @@ class MyOptimizer(FloorplanOptimizer):
               p2b_connectivity: torch.Tensor, pins_pos: torch.Tensor, constraints: torch.Tensor,
               target_positions: torch.Tensor = None) -> List[Rect]:
         dims = self._choose_dimensions(block_count, area_targets, constraints, target_positions)
+        if block_count >= 100:
+            b2b_edges = self._b2b_edges(b2b_connectivity)
+            p2b_edges = self._p2b_edges(p2b_connectivity)
+        else:
+            b2b_edges = b2b_connectivity
+            p2b_edges = p2b_connectivity
         positions: List[Rect | None] = [None] * block_count
         preplaced = set()
         if constraints is not None and constraints.dim() > 1 and constraints.shape[1] > 1:
@@ -46,7 +52,7 @@ class MyOptimizer(FloorplanOptimizer):
         # the soft-violation gain.
         if block_count < 119:
             boundary_units, boundary_cluster_ids = self._make_boundary_cluster_units(
-                movable, boundary, dims, constraints, area_targets, b2b_connectivity, p2b_connectivity
+                movable, boundary, dims, constraints, area_targets, b2b_edges, p2b_edges
             )
         else:
             boundary_units, boundary_cluster_ids = [], set()
@@ -65,8 +71,8 @@ class MyOptimizer(FloorplanOptimizer):
         # chain guarantees each member shares an edge with the next one, which
         # sharply lowers grouping violations while preserving exact areas.
         for i, rect in self._pack_interior_units(
-            interior, dims, constraints, area_targets, b2b_connectivity,
-            p2b_connectivity, start_x, start_y
+            interior, dims, constraints, area_targets, b2b_edges,
+            p2b_edges, start_x, start_y
         ).items():
             positions[i] = rect
 
@@ -78,7 +84,7 @@ class MyOptimizer(FloorplanOptimizer):
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
-            ordered = self._order_blocks(movable, area_targets, b2b_connectivity, p2b_connectivity)
+            ordered = self._order_blocks(movable, area_targets, b2b_edges, p2b_edges)
             safe_x = max((p[0] + p[2] for k, p in enumerate(positions) if p is not None and k in preplaced), default=0.0) + 1.0
             for i, rect in self._shelf_pack(ordered, dims, safe_x, start_y).items():
                 positions[i] = rect
@@ -376,6 +382,24 @@ class MyOptimizer(FloorplanOptimizer):
                         if i not in hard:
                             dims[i] = common
         return dims
+
+    def _b2b_edges(self, b2b_connectivity):
+        if b2b_connectivity is None:
+            return []
+        edges = []
+        for e in b2b_connectivity:
+            if e[0] != -1:
+                edges.append((int(e[0]), int(e[1]), abs(float(e[2]))))
+        return edges
+
+    def _p2b_edges(self, p2b_connectivity):
+        if p2b_connectivity is None:
+            return []
+        edges = []
+        for e in p2b_connectivity:
+            if e[0] != -1:
+                edges.append((int(e[0]), int(e[1]), abs(float(e[2]))))
+        return edges
 
     def _shelf_pack(self, ordered, dims, start_x, start_y):
         if not ordered:

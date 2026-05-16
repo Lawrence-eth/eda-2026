@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 5.0922,
-    "average_cost": 3.7407,
-    "average_runtime_seconds": 0.2092,
+    "total_score": 3.8289,
+    "average_cost": 3.7583,
+    "average_runtime_seconds": 0.1381,
     "average_hpwl_gap": 1.6636,
     "average_area_gap": 1.6517,
     "average_soft_violation_ratio": 0.1392,
-    "worst_case_cost": 7.1122,
+    "worst_case_cost": 7.77,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -19,6 +19,6 @@
   },
   "notes": [
     "Lower score is better under the contest cost function.",
-    "Boundary-aware cluster packing reduces grouping violations while preserving hard feasibility."
+    "Large-instance connectivity preprocessing reduces runtime penalty while preserving hard feasibility and placement quality."
   ]
 }
