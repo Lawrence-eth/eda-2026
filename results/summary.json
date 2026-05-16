@@ -1,10 +1,30 @@
 {
-  "total_score": 9.834978627476351,
   "reported_metrics": {
+    "validation_set": "LiteTensorDataTest, 100 cases",
     "feasible_cases": "100/100",
-    "average_cost": 6.7683,
-    "total_score": 9.835,
-    "average_runtime_seconds": 0.0481,
-    "tests": "2/2 passed"
+    "total_score": 5.6087,
+    "average_cost": 3.9135,
+    "average_runtime_seconds": 0.1907,
+    "average_hpwl_gap": 1.6257,
+    "average_area_gap": 1.4171,
+    "average_soft_violation_ratio": 0.1722,
+    "worst_case_cost": 7.8052,
+    "tests": "2/2 passed",
+    "official_validator": "PASSED"
+  },
+  "baseline_before_improvement": {
+    "total_score": "about 9.76-9.84",
+    "average_cost": "about 6.75",
+    "feasible_cases": "100/100"
+  },
+  "soft_violation_totals_after": {
+    "boundary": 122,
+    "grouping": 581,
+    "mib": 55
+  },
+  "soft_violation_totals_before": {
+    "boundary": 464,
+    "grouping": 1422,
+    "mib": 55
   }
 }
