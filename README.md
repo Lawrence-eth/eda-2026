@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.9991
-- Average cost: 3.7316
-- Average runtime: 1.5252 seconds
-- Average HPWL gap: 1.5258
+- Total score: 1.9962
+- Average cost: 3.7353
+- Average runtime: 1.4913 seconds
+- Average HPWL gap: 1.5254
 - Average area gap: 1.4883
 - Average soft violation ratio: 0.1254
-- Worst per-case cost: 8.6689
+- Worst per-case cost: 8.6372
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -78,8 +78,8 @@ Main components:
 - vectorized connectivity preprocessing for large validation cases;
 - targeted high-block-count row-width tuning, including the 111- through 120-block validation sizes;
 - bounded post-placement translation of unconstrained cluster components to remove grouping splits without overlaps or bbox expansion;
-- bounded post-placement shifts of unconstrained interior blocks on 116-119 block cases to reduce incident wirelength without overlaps or bbox expansion;
-- a trimmed 120-block interior shift pass over the highest-connectivity free blocks to improve the dominant weighted case while staying within the runtime cap;
+- bounded post-placement shifts of unconstrained interior blocks on selected high-count cases to reduce incident wirelength without overlaps or bbox expansion;
+- a trimmed 120-block interior shift pass over the highest-connectivity free blocks to improve the dominant weighted case while preserving runtime-cap behavior;
 - tuned row-width parameters for score/runtime balance.
 
 ## Quality improvements
