@@ -138,9 +138,12 @@ class MyOptimizer(FloorplanOptimizer):
 
     def _layout_variants(self, block_count):
         tuned = {
+            111: [(1.08, 1.20, 1.34)],
+            114: [(1.08, 1.50, 1.34)],
+            115: [(1.08, 1.50, 1.34)],
             116: [(0.88, 1.00, 1.34)],
             117: [(0.96, 1.00, 1.34)],
-            118: [(0.80, 1.20, 1.34)],
+            118: [(0.78, 1.34, 1.34)],
             119: [(0.84, 1.50, 1.34)],
         }
         if block_count in tuned:
@@ -179,7 +182,7 @@ class MyOptimizer(FloorplanOptimizer):
                 group = [i for i in interior if int(constraints[i, 3].item()) == gid]
                 if len(group) < 2:
                     continue
-                group = self._order_blocks(group, area_targets, b2b_connectivity, p2b_connectivity)
+                group = sorted(group, key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
                 local, uw, uh = self._cluster_local_pack(group, dims)
                 for i in group:
                     used.add(i)
