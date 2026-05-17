@@ -53,6 +53,13 @@ def case_count(data: dict[str, Any]) -> int:
     return len(data["test_results"])
 
 
+def case_ids(data: dict[str, Any]) -> set[int]:
+    return {
+        int(_num(case.get("test_id"), idx))
+        for idx, case in enumerate(data["test_results"])
+    }
+
+
 def avg_runtime(data: dict[str, Any]) -> float:
     summary = data.get("summary") or {}
     if "avg_runtime" in summary:
@@ -147,6 +154,8 @@ def compare(
     candidate_cases = case_count(candidate)
     required_cases = baseline_cases if min_cases is None else min_cases
     candidate_feasible = feasible_count(candidate)
+    baseline_ids = case_ids(baseline)
+    candidate_ids = case_ids(candidate)
 
     messages = [
         f"baseline_score={baseline_score:.6f}",
@@ -160,6 +169,13 @@ def compare(
     if candidate_cases < required_cases:
         ok = False
         messages.append(f"FAIL: candidate has {candidate_cases} cases, expected at least {required_cases}")
+    missing_ids = sorted(baseline_ids - candidate_ids)
+    if missing_ids:
+        ok = False
+        preview = ", ".join(str(test_id) for test_id in missing_ids[:10])
+        if len(missing_ids) > 10:
+            preview += ", ..."
+        messages.append(f"FAIL: candidate is missing baseline test_id values: {preview}")
     if require_full_feasible and candidate_feasible != candidate_cases:
         ok = False
         messages.append("FAIL: candidate is not fully feasible")

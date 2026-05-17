@@ -107,7 +107,10 @@ python -m pytest -q
 Without Torch installed, the public test suite skips the optimizer tests that
 need contest tensor inputs and still runs the diagnostics and comparison-guard
 tests. Use the contest environment for the full optimizer regression suite
-before publishing solver changes.
+before publishing solver changes. The comparison guard requires candidate
+full-run JSON files to preserve full feasibility, include every baseline
+`test_id`, and strictly improve the published total score before replacing
+best-result artifacts.
 
 ## Next Improvement Ideas
 

@@ -63,6 +63,17 @@ def test_compare_rejects_truncated_candidate_result():
     assert any("expected at least 3" in message for message in messages)
 
 
+def test_compare_rejects_missing_baseline_test_ids_even_with_same_case_count():
+    baseline = _result(score=2.0, cases=3)
+    candidate = copy.deepcopy(_result(score=1.5, cases=3))
+    candidate["test_results"][1]["test_id"] = 99
+
+    ok, messages = compare_results.compare(baseline, candidate)
+
+    assert not ok
+    assert any("missing baseline test_id values: 1" in message for message in messages)
+
+
 def test_compare_reports_top_weighted_case_deltas():
     baseline = _result(score=2.0, cases=3)
     candidate = copy.deepcopy(baseline)

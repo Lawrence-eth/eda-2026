@@ -153,11 +153,12 @@ the range summary includes reconstructed score contribution, score share,
 weight share, and the highest-impact case in each block-count range.
 
 Use `scripts/compare_results.py` before publishing a solver update. It requires
-the candidate result to remain fully feasible, include at least the baseline case
-count, and strictly lower `total_score` unless `--allow-equal` is used for a
-reproducibility check. It also reports the top weighted per-case regressions and
-improvements, including HPWL, area, soft-violation, and runtime deltas, so a
-candidate run can be debugged without manually diffing the full JSON.
+the candidate result to remain fully feasible, include every baseline `test_id`,
+include at least the baseline case count, and strictly lower `total_score` unless
+`--allow-equal` is used for a reproducibility check. It also reports the top
+weighted per-case regressions and improvements, including HPWL, area,
+soft-violation, and runtime deltas, so a candidate run can be debugged without
+manually diffing the full JSON.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 
