@@ -1,3 +1,4 @@
+import json
 import math
 
 from scripts import analyze_results
@@ -98,3 +99,30 @@ def test_recommendation_uses_available_soft_violation_driver():
     assert "soft constraints" in recommendation
     assert "grouping" in recommendation
     assert "Dominant score range" in recommendation
+
+
+def test_write_enriched_result_preserves_score_and_adds_diagnostics(tmp_path):
+    original = {
+        "total_score": 2.052769,
+        "summary": {"num_feasible": 1},
+        "test_results": [{"test_id": 1, "cost": 3.0}],
+    }
+    cases = [
+        {
+            "test_id": 1,
+            "cost": 3.0,
+            "boundary_violations": 1,
+            "grouping_violations": 2,
+            "mib_violations": 0,
+        }
+    ]
+    out = tmp_path / "diagnostics" / "enriched.json"
+
+    analyze_results.write_enriched_result(original, cases, out, tmp_path / "baseline.json")
+
+    written = json.loads(out.read_text())
+    assert written["total_score"] == original["total_score"]
+    assert written["summary"] == original["summary"]
+    assert written["test_results"] == cases
+    assert written["diagnostics"]["enriched_soft_counts"]["source_result"].endswith("baseline.json")
+    assert "grouping_violations" in written["diagnostics"]["enriched_soft_counts"]["fields"]

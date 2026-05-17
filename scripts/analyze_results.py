@@ -9,6 +9,7 @@ Usage:
     python scripts/analyze_results.py
     python scripts/analyze_results.py results/boundary_full.json --top 30
     python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
+    python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_full.json
 """
 from __future__ import annotations
 
@@ -153,6 +154,36 @@ def enrich_with_official_soft_counts(
         enriched += 1
 
     print(f"Enriched soft-violation counts for {enriched}/{len(cases)} cases using {contest_dir}", file=sys.stderr)
+
+
+def write_enriched_result(original: dict[str, Any], cases: list[dict[str, Any]], output_path: Path, source_path: Path) -> None:
+    """Write a result JSON copy with recomputed per-case soft counts.
+
+    The published baseline result should remain immutable unless a new solver
+    result is verified.  This helper writes a separate diagnostic artifact that
+    preserves the original score and summary while adding attribution fields to
+    each case.
+    """
+
+    enriched = dict(original)
+    enriched["test_results"] = cases
+    diagnostics = dict(enriched.get("diagnostics") or {})
+    diagnostics["enriched_soft_counts"] = {
+        "source_result": str(source_path),
+        "fields": [
+            "boundary_violations",
+            "grouping_violations",
+            "mib_violations",
+            "total_soft_violations",
+            "max_possible_violations",
+            "recomputed_violations_relative",
+        ],
+    }
+    enriched["diagnostics"] = diagnostics
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w") as f:
+        json.dump(enriched, f, indent=2)
+        f.write("\n")
 
 
 def load_result(path: Path) -> dict[str, Any]:
@@ -333,13 +364,24 @@ def main() -> None:
         default=None,
         help="Optional FloorSet data root for --contest-dir; defaults to the official checkout parent",
     )
+    parser.add_argument(
+        "--write-enriched",
+        type=Path,
+        default=None,
+        help="Write a diagnostic JSON copy containing recomputed boundary/grouping/MIB counts; requires --contest-dir",
+    )
     args = parser.parse_args()
 
     path = Path(args.result_json)
     data = load_result(path)
     cases = [dict(c) for c in data["test_results"]]
+    if args.write_enriched is not None and args.contest_dir is None:
+        raise SystemExit("--write-enriched requires --contest-dir so official soft counts can be reconstructed")
     if args.contest_dir is not None:
         enrich_with_official_soft_counts(cases, args.contest_dir.resolve(), args.data_path.resolve() if args.data_path else None)
+    if args.write_enriched is not None:
+        write_enriched_result(data, cases, args.write_enriched, path)
+        print(f"Wrote enriched diagnostic JSON: {args.write_enriched}", file=sys.stderr)
     add_weights(cases)
 
     total_score = data.get("total_score")

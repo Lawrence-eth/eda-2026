@@ -167,6 +167,14 @@ python scripts/analyze_results.py results/boundary_full.json \
 ```
 
 Use the same Python environment as the official evaluator for this enriched mode.
+To keep the published best-result artifact unchanged while saving the enriched
+attribution for later debugging, write a separate diagnostic copy:
+
+```bash
+python scripts/analyze_results.py results/boundary_full.json \
+  --contest-dir external/FloorSet/iccad2026contest \
+  --write-enriched results/enriched_diagnostics.json
+```
 
 ## Next improvement directions
 
