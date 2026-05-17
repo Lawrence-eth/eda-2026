@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 18 / 18 passed
+- Public regression tests: 18 / 18 passed with contest dependencies; 12 passed / 2 skipped in a dependency-light Python environment
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -99,7 +99,9 @@ boundary/corner accounting, grouping connectedness, MIB dimension normalization,
 and boundary-cluster packing. These tests are intended as guardrails for future
 score-focused solver changes. The copied contest smoke tests use official
 evaluator helpers when available and otherwise fall back to equivalent local
-checks, so the public test suite can run after a plain clone.
+checks. Torch-dependent optimizer tests are skipped automatically when Torch is
+not installed, so diagnostics and result-guard tests can still run after a plain
+clone.
 
 ## Reproduction instructions
 
@@ -139,6 +141,11 @@ python scripts/analyze_results.py results/boundary_full.json --top 30
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python -m pytest -q
 ```
+
+In an environment without Torch, `python -m pytest -q` still runs the
+dependency-light diagnostics and comparison tests and skips the optimizer
+tests that require contest tensor inputs. Use the contest environment for the
+full 18-test regression suite before publishing solver changes.
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
 Small nonzero weighted contributions are printed in scientific notation, and

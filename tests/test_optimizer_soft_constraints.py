@@ -4,7 +4,9 @@ import sys
 import types
 from pathlib import Path
 
-import torch
+import pytest
+
+torch = pytest.importorskip("torch")
 
 
 def _load_optimizer():

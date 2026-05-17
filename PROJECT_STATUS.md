@@ -19,6 +19,7 @@
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
+- Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
 
 ## Current Optimizer
 
@@ -55,7 +56,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 18 / 18 passed
+- Public regression tests: 18 / 18 passed with contest dependencies; 12 passed / 2 skipped in a dependency-light Python environment
 - Official validator: PASSED
 
 Result file:
@@ -100,6 +101,11 @@ python scripts/analyze_results.py results/boundary_full.json --contest-dir exter
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python -m pytest -q
 ```
+
+Without Torch installed, the public test suite skips the optimizer tests that
+need contest tensor inputs and still runs the diagnostics and comparison-guard
+tests. Use the contest environment for the full optimizer regression suite
+before publishing solver changes.
 
 ## Next Improvement Ideas
 
