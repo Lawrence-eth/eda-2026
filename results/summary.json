@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 2.5683,
-    "average_cost": 3.8134,
-    "average_runtime_seconds": 0.5128,
+    "total_score": 2.5356,
+    "average_cost": 3.7894,
+    "average_runtime_seconds": 0.5154,
     "average_hpwl_gap": 1.6075,
     "average_area_gap": 1.5367,
     "average_soft_violation_ratio": 0.1388,
-    "worst_case_cost": 9.3588,
+    "worst_case_cost": 9.2973,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
