@@ -1,4 +1,5 @@
 import copy
+import math
 
 from scripts import audit_results
 
@@ -6,23 +7,33 @@ from scripts import audit_results
 def _valid_result():
     cases = []
     for test_id, block_count in [(0, 21), (1, 22)]:
+        cost = 2.0 + test_id
+        runtime = 0.02 + test_id * 0.02
         cases.append(
             {
                 "test_id": test_id,
                 "block_count": block_count,
                 "is_feasible": True,
-                "cost": 2.0,
+                "cost": cost,
                 "hpwl_gap": 0.5,
                 "area_gap": 0.4,
                 "violations_relative": 0.1,
-                "runtime_seconds": 0.02,
+                "runtime_seconds": runtime,
                 "error": None,
                 "positions": [[float(i), 0.0, 1.0, 1.0] for i in range(block_count)],
             }
         )
+    max_blocks = max(case["block_count"] for case in cases)
+    weights = [math.exp(case["block_count"] - max_blocks) for case in cases]
+    total_weight = sum(weights)
     return {
-        "total_score": 1.9,
-        "summary": {"num_tests": 2, "num_feasible": 2},
+        "total_score": sum(case["cost"] * weight / total_weight for case, weight in zip(cases, weights)),
+        "summary": {
+            "num_tests": 2,
+            "num_feasible": 2,
+            "avg_cost": sum(case["cost"] for case in cases) / len(cases),
+            "avg_runtime": sum(case["runtime_seconds"] for case in cases) / len(cases),
+        },
         "test_results": cases,
     }
 
@@ -105,3 +116,25 @@ def test_audit_can_allow_infeasible_for_debug_artifacts():
 
     assert ok
     assert errors == []
+
+
+def test_audit_rejects_total_score_that_does_not_match_cases():
+    data = _valid_result()
+    data["total_score"] += 0.01
+
+    ok, errors, _ = audit_results.audit_result(data)
+
+    assert not ok
+    assert any("reconstructed weighted score" in error for error in errors)
+
+
+def test_audit_rejects_summary_average_mismatches():
+    data = _valid_result()
+    data["summary"]["avg_cost"] += 0.01
+    data["summary"]["avg_runtime"] += 0.01
+
+    ok, errors, _ = audit_results.audit_result(data)
+
+    assert not ok
+    assert any("summary.avg_cost" in error for error in errors)
+    assert any("summary.avg_runtime" in error for error in errors)

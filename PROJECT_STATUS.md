@@ -22,6 +22,7 @@
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
 - Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, and saved rectangle shape.
 - Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
+- Extended the result audit to reconstruct the block-count weighted total score and verify published summary averages against per-case metrics.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 - Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
 - Added repository pytest configuration so `pytest` and `python -m pytest` both resolve local `scripts` imports reliably.
@@ -61,7 +62,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 28 / 28 passed with contest dependencies
+- Public regression tests: 30 / 30 passed with contest dependencies
 - Official validator: PASSED
 
 Result file:
@@ -116,7 +117,9 @@ before publishing solver changes. The comparison guard requires candidate
 full-run JSON files to preserve full feasibility, include every baseline
 `test_id`, and strictly improve the published total score before replacing
 best-result artifacts. The result audit should pass on any published full-run
-artifact before it is compared or copied over the current best result.
+artifact before it is compared or copied over the current best result; it also
+checks that top-level score and summary averages are consistent with the
+per-case metrics.
 
 ## Next Improvement Ideas
 

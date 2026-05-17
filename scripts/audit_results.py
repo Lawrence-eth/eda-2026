@@ -35,6 +35,11 @@ FINITE_NONNEGATIVE_FIELDS = (
     "violations_relative",
     "runtime_seconds",
 )
+SUMMARY_AVERAGE_FIELDS = {
+    "avg_cost": "cost",
+    "avg_runtime": "runtime_seconds",
+}
+FLOAT_TOLERANCE = 1e-6
 
 
 def _num(value: Any, default: float = math.nan) -> float:
@@ -57,6 +62,20 @@ def load_result(path: Path) -> dict[str, Any]:
 def _is_finite_nonnegative(value: Any) -> bool:
     number = _num(value)
     return math.isfinite(number) and number >= 0.0
+
+
+def _weighted_score(cases: list[dict[str, Any]]) -> float:
+    """Reconstruct the evaluator's block-count weighted total score."""
+
+    max_blocks = max(int(_num(case.get("block_count"))) for case in cases)
+    raw_weights = [math.exp(int(_num(case.get("block_count"))) - max_blocks) for case in cases]
+    total_weight = sum(raw_weights) or 1.0
+    return sum(_num(case.get("cost")) * weight / total_weight for case, weight in zip(cases, raw_weights))
+
+
+def _mean_case_field(cases: list[dict[str, Any]], field: str) -> float:
+    values = [_num(case.get(field)) for case in cases]
+    return sum(values) / len(values) if values else math.nan
 
 
 def _audit_positions(
@@ -157,6 +176,28 @@ def audit_result(
         errors.append(f"summary.num_feasible={summary_feasible} does not match {feasible_count} feasible cases")
     if require_full_feasible and feasible_count != len(cases):
         errors.append(f"result is not fully feasible: {feasible_count}/{len(cases)} cases feasible")
+
+    if not errors:
+        reconstructed_score = _weighted_score(cases)
+        if not math.isclose(total_score, reconstructed_score, rel_tol=0.0, abs_tol=FLOAT_TOLERANCE):
+            errors.append(
+                f"total_score {total_score:.12f} does not match reconstructed weighted score "
+                f"{reconstructed_score:.12f}"
+            )
+
+    if isinstance(summary, dict):
+        for summary_field, case_field in SUMMARY_AVERAGE_FIELDS.items():
+            if summary_field not in summary:
+                continue
+            expected = _mean_case_field(cases, case_field)
+            actual = _num(summary[summary_field])
+            if not math.isfinite(actual):
+                errors.append(f"summary.{summary_field} must be finite")
+            elif not math.isclose(actual, expected, rel_tol=0.0, abs_tol=FLOAT_TOLERANCE):
+                errors.append(
+                    f"summary.{summary_field}={actual:.12f} does not match per-case average "
+                    f"{expected:.12f}"
+                )
 
     return not errors, errors, warnings
 
