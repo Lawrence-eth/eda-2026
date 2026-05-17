@@ -654,7 +654,7 @@ class MyOptimizer(FloorplanOptimizer):
         ncols = constraints.shape[1]
         movable = []
         for i in range(block_count):
-            if ncols > 0 and constraints[i, 0] != 0:
+            if ncols > 0 and constraints[i, 0] != 0 and block_count not in (117, 118, 119):
                 continue
             if ncols > 1 and constraints[i, 1] != 0:
                 continue

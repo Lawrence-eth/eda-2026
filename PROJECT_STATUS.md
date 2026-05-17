@@ -62,6 +62,7 @@ The optimizer is a constructive heuristic:
 - reuses cached connectivity degrees for cluster member ordering to reduce high-block-count runtime;
 - applies bounded post-placement translation of unconstrained cluster components when it removes a grouping split without overlaps or bbox expansion;
 - applies bounded post-placement shifts of unconstrained interior blocks on selected high-count cases when local incident wirelength improves without overlaps or bbox expansion;
+- allows fixed-shape, non-preplaced interior blocks to join the guarded shift pass on 117- through 119-block cases, preserving dimensions while reducing high-count HPWL;
 - applies a trimmed 120-block interior shift pass over the highest-connectivity free blocks to reduce incident wirelength while preserving runtime-cap behavior;
 - applies guarded top-edge boundary compaction on the largest case when movable top-edge blocks can be pulled inward without overlaps, soft-violation increase, or incident-wirelength regression;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
@@ -71,13 +72,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.9463
-- Average cost: 3.7366
-- Average runtime: 1.6046s
+- Total score: 1.9422
+- Average cost: 3.7229
+- Average runtime: 1.5454s
 - Average HPWL gap: 1.5251
 - Average area gap: 1.4859
 - Average soft violation ratio: 0.1254
-- Worst per-case cost: 8.6505
+- Worst per-case cost: 8.6179
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
