@@ -135,7 +135,7 @@ class MyOptimizer(FloorplanOptimizer):
                 block_count, positions, constraints, area_targets,
                 b2b_edges, p2b_edges, pins_pos
             )
-            if 116 <= block_count < 120:
+            if 116 <= block_count <= 120:
                 self._refine_free_block_shifts(
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
@@ -679,7 +679,8 @@ class MyOptimizer(FloorplanOptimizer):
 
         degrees = self._connection_degrees(movable, b2b_connectivity, p2b_connectivity)
         ordered = sorted(movable, key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
-        base_area = calculate_bbox_area(positions)
+        if block_count >= 120:
+            ordered = ordered[:8]
 
         for _pass in range(1):
             improved = False
@@ -702,20 +703,16 @@ class MyOptimizer(FloorplanOptimizer):
                 best_rect = None
                 best_cost = self._local_wirelength_fast(i, positions[i], positions, b_adj[i], p_adj[i], pins_pos)
                 for nx, ny in candidates:
-                    trial = list(positions)
-                    trial[i] = (nx, ny, w, h)
-                    if calculate_bbox_area(trial) > base_area + 1e-6:
+                    candidate = (nx, ny, w, h)
+                    if self._overlaps_any_except(candidate, positions, i):
                         continue
-                    if self._overlaps_any(trial[i], trial[:i] + trial[i + 1:]):
-                        continue
-                    cost = self._local_wirelength_fast(i, trial[i], positions, b_adj[i], p_adj[i], pins_pos)
+                    cost = self._local_wirelength_fast(i, candidate, positions, b_adj[i], p_adj[i], pins_pos)
                     if cost + 1e-6 < best_cost:
                         best_cost = cost
-                        best_rect = trial[i]
+                        best_rect = candidate
 
                 if best_rect is not None:
                     positions[i] = best_rect
-                    base_area = calculate_bbox_area(positions)
                     improved = True
             if not improved:
                 break
@@ -1022,6 +1019,15 @@ class MyOptimizer(FloorplanOptimizer):
     def _overlaps_any(self, rect, others):
         x1, y1, w1, h1 = rect
         for x2, y2, w2, h2 in others:
+            if min(x1 + w1, x2 + w2) - max(x1, x2) > 1e-6 and min(y1 + h1, y2 + h2) - max(y1, y2) > 1e-6:
+                return True
+        return False
+
+    def _overlaps_any_except(self, rect, positions, skip):
+        x1, y1, w1, h1 = rect
+        for j, (x2, y2, w2, h2) in enumerate(positions):
+            if j == skip:
+                continue
             if min(x1 + w1, x2 + w2) - max(x1, x2) > 1e-6 and min(y1 + h1, y2 + h2) - max(y1, y2) > 1e-6:
                 return True
         return False

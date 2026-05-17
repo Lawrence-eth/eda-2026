@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 2.0037,
-    "average_cost": 3.7402,
-    "average_runtime_seconds": 1.4872,
-    "average_hpwl_gap": 1.526,
+    "total_score": 1.9991,
+    "average_cost": 3.7316,
+    "average_runtime_seconds": 1.5252,
+    "average_hpwl_gap": 1.5258,
     "average_area_gap": 1.4883,
     "average_soft_violation_ratio": 0.1254,
-    "worst_case_cost": 8.6574,
+    "worst_case_cost": 8.6689,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -19,6 +19,7 @@
   },
   "notes": [
     "Lower score is better under the contest cost function.",
-    "A bounded 116-119 block interior shift pass reduces high-count HPWL while preserving hard feasibility."
+    "A bounded 116-119 block interior shift pass reduces high-count HPWL while preserving hard feasibility.",
+    "A trimmed 120-block interior shift pass targets only the highest-connectivity free blocks to reduce HPWL without losing the runtime cap."
   ]
 }
