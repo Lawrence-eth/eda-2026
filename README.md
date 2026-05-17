@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 2.0975
-- Average cost: 3.6569
-- Average runtime: 0.3827 seconds
-- Average HPWL gap: 1.5925
+- Total score: 2.0528
+- Average cost: 3.7306
+- Average runtime: 1.5472 seconds
+- Average HPWL gap: 1.5280
 - Average area gap: 1.4864
-- Average soft violation ratio: 0.1360
-- Worst per-case cost: 7.8425
+- Average soft violation ratio: 0.1261
+- Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -54,6 +54,7 @@ Main components:
 - overlap-free constructive placement;
 - perimeter placement for movable boundary-constrained blocks;
 - compact perimeter placement without artificial spacing around the final frame;
+- connectivity-aware ordering for boundary blocks along each perimeter edge;
 - boundary-aware cluster packing for same-edge boundary clusters;
 - MIB dimension normalization when target-area constraints allow a shared shape;
 - cluster-aware macro packing for non-boundary cluster groups;
@@ -80,7 +81,7 @@ The current implementation focuses on reducing the main soft-constraint and plac
 Soft-constraint diagnostics on the 100-case validation run:
 
 - boundary violations: 122
-- grouping violations: 419
+- grouping violations: 369
 - MIB violations: 55
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.

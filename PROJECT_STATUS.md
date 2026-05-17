@@ -10,6 +10,7 @@
 - Added compact perimeter placement to remove unnecessary spacing around the final boundary frame.
 - Added cluster-aware macro packing for non-boundary clusters.
 - Added boundary-aware packing for same-edge boundary clusters, placing boundary members on the required edge and packing cluster mates inward.
+- Added connectivity-aware ordering for movable boundary blocks on each perimeter edge.
 - Published local validation artifacts in `results/`.
 
 ## Current Optimizer
@@ -25,6 +26,7 @@ The optimizer is a constructive heuristic:
 - normalizes MIB dimensions when target areas allow it;
 - packs non-boundary cluster groups as connected macro-blocks;
 - packs same-edge boundary clusters as perimeter macro-blocks when this is beneficial for the validation-size range;
+- orders movable perimeter blocks by nearby pins and already placed connected blocks while keeping clustered boundary members consecutive;
 - uses connectivity-weighted ordering and adaptive shelf widths for score/runtime balance;
 - preprocesses connectivity into lightweight tuples using vectorized tensor conversion on large cases;
 - skips unused selection-score evaluation when a block count has only one deterministic layout variant;
@@ -38,13 +40,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 2.0975
-- Average cost: 3.6569
-- Average runtime: 0.3827s
-- Average HPWL gap: 1.5925
+- Total score: 2.0528
+- Average cost: 3.7306
+- Average runtime: 1.5472s
+- Average HPWL gap: 1.5280
 - Average area gap: 1.4864
-- Average soft violation ratio: 0.1360
-- Worst per-case cost: 7.8425
+- Average soft violation ratio: 0.1261
+- Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -67,7 +69,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 419 total
+- grouping violations: 369 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.

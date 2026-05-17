@@ -125,7 +125,10 @@ class MyOptimizer(FloorplanOptimizer):
         if not content:
             content = [(0.0, 0.0, 1.0, 1.0)]
 
-        self._place_boundary_items(boundary_blocks, boundary_units, boundary, dims, positions, content)
+        self._place_boundary_items(
+            boundary_blocks, boundary_units, boundary, dims, positions, content,
+            b2b_edges, p2b_edges, pins_pos, constraints
+        )
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
@@ -314,7 +317,9 @@ class MyOptimizer(FloorplanOptimizer):
         max_w = max(max_w, x)
         return local, max_w, y + row_h
 
-    def _place_boundary_items(self, boundary_blocks, boundary_units, boundary, dims, positions, content) -> None:
+    def _place_boundary_items(self, boundary_blocks, boundary_units, boundary, dims, positions, content,
+                              b2b_connectivity=None, p2b_connectivity=None, pins_pos=None,
+                              constraints=None) -> None:
         if not boundary_blocks and not boundary_units:
             return
         gap = 0.0
@@ -328,8 +333,9 @@ class MyOptimizer(FloorplanOptimizer):
         items = []
         for i in boundary_blocks:
             w, h = dims[i]
+            gid = int(constraints[i, 3].item()) if constraints is not None and constraints.dim() > 1 and constraints.shape[1] > 3 else 0
             items.append({'kind': 'block', 'id': i, 'code': boundary[i], 'w': w, 'h': h,
-                          'local': {i: (0.0, 0.0, w, h)}})
+                          'local': {i: (0.0, 0.0, w, h)}, 'ids': [i], 'gid': gid})
         items.extend(boundary_units)
 
         leftish = [u for u in items if u['code'] & 1]
@@ -340,6 +346,19 @@ class MyOptimizer(FloorplanOptimizer):
         right_only = [u for u in rightish if u['code'] == 2]
         top_only = [u for u in topish if u['code'] == 4]
         bottom_only = [u for u in bottomish if u['code'] == 8]
+        cluster_anchor = self._boundary_cluster_anchors(items)
+        left_only.sort(key=lambda u: self._boundary_item_key(
+            u, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        ))
+        right_only.sort(key=lambda u: self._boundary_item_key(
+            u, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        ))
+        top_only.sort(key=lambda u: self._boundary_item_key(
+            u, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        ))
+        bottom_only.sort(key=lambda u: self._boundary_item_key(
+            u, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        ))
 
         left_w = max((u['w'] for u in leftish), default=0.0)
         right_w = max((u['w'] for u in rightish), default=0.0)
@@ -438,6 +457,50 @@ class MyOptimizer(FloorplanOptimizer):
                 place_item(u, x, y)
                 x += w
                 row_h = max(row_h, h)
+
+    def _boundary_cluster_anchors(self, items):
+        anchors = {}
+        for item in items:
+            gid = item.get('gid', 0)
+            if gid:
+                ids = item.get('ids', item['local'].keys())
+                anchors[gid] = min(anchors.get(gid, min(ids)), min(ids))
+        return anchors
+
+    def _boundary_item_key(self, item, axis, positions, b2b_connectivity, p2b_connectivity, pins_pos,
+                           cluster_anchor):
+        ids = set(item.get('ids', item['local'].keys()))
+        gid = item.get('gid', 0)
+        if gid:
+            return (0, cluster_anchor.get(gid, min(ids)), min(ids))
+        total = 0.0
+        weight = 0.0
+        if b2b_connectivity is not None:
+            for e in b2b_connectivity:
+                if len(e) >= 3 and e[0] != -1:
+                    a, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+                    other = None
+                    if a in ids and b not in ids:
+                        other = b
+                    elif b in ids and a not in ids:
+                        other = a
+                    if other is not None and 0 <= other < len(positions) and positions[other] is not None:
+                        x, y, bw, bh = positions[other]
+                        total += w * (x + bw * 0.5 if axis == 0 else y + bh * 0.5)
+                        weight += w
+        if p2b_connectivity is not None and pins_pos is not None:
+            for e in p2b_connectivity:
+                if len(e) >= 3 and e[0] != -1:
+                    pin, block, w = int(e[0]), int(e[1]), abs(float(e[2]))
+                    if block in ids and 0 <= pin < len(pins_pos):
+                        px = float(pins_pos[pin, 0])
+                        py = float(pins_pos[pin, 1])
+                        if px != -1.0 and py != -1.0:
+                            total += w * (px if axis == 0 else py)
+                            weight += w
+        if weight > 0.0:
+            return (1, total / weight, min(ids))
+        return (1, min(ids), min(ids))
 
     def _choose_dimensions(self, block_count, area_targets, constraints, target_positions):
         dims = []
