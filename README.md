@@ -30,6 +30,8 @@ contest_solution/
 
 tests/
   test_analyze_results.py  Regression tests for result diagnostics
+  test_optimizer_soft_constraints.py
+                           Standalone optimizer-helper regression tests
 
 docs/extracted/
   C_20260325.txt           Extracted text from the contest specification PDF
@@ -90,6 +92,11 @@ Soft-constraint diagnostics on the 100-case validation run:
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.
 
+The public regression suite also includes standalone tests for optimizer-local
+boundary/corner accounting, grouping connectedness, MIB dimension normalization,
+and boundary-cluster packing. These tests are intended as guardrails for future
+score-focused solver changes.
+
 ## Reproduction instructions
 
 This repository does not vendor the full official contest repository or the downloaded dataset. To reproduce the run, clone the official FloorSet repository, copy the optimizer into the contest folder, download the Lite dataset, and run the evaluator.
@@ -125,6 +132,7 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 ```bash
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
+python -m pytest tests/test_analyze_results.py tests/test_optimizer_soft_constraints.py -q
 ```
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
