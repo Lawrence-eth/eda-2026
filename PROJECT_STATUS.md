@@ -23,6 +23,7 @@
 - Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
+- Tightened `scripts/compare_results.py` so candidate feasibility is derived from per-case records and duplicate candidate `test_id` values fail before publication.
 - Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, saved rectangle shape, and saved-rectangle overlap checks.
 - Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
 - Extended the result audit to reconstruct the block-count weighted total score and verify published summary averages against per-case metrics.
@@ -67,7 +68,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 30 / 30 passed with contest dependencies
+- Public regression tests: 35 / 35 passed with contest dependencies
 - Official validator: PASSED
 
 Result file:
@@ -120,9 +121,9 @@ Without Torch installed, the public test suite skips the optimizer tests that
 need contest tensor inputs and still runs the diagnostics and comparison-guard
 tests. Use the contest environment for the full optimizer regression suite
 before publishing solver changes. The comparison guard requires candidate
-full-run JSON files to preserve full feasibility, include every baseline
-`test_id`, and strictly improve the published total score before replacing
-best-result artifacts. The result audit should pass on any published full-run
+full-run JSON files to preserve per-case full feasibility, include every baseline
+`test_id`, avoid duplicate candidate IDs, and strictly improve the published
+total score before replacing best-result artifacts. The result audit should pass on any published full-run
 artifact before it is compared or copied over the current best result; it also
 checks saved rectangles for positive-area overlaps and verifies that top-level
 score and summary averages are consistent with the per-case metrics.

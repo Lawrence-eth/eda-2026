@@ -37,10 +37,14 @@ def load_result(path: Path) -> dict[str, Any]:
 
 
 def feasible_count(data: dict[str, Any]) -> int:
+    return sum(1 for case in data["test_results"] if case.get("is_feasible") is True)
+
+
+def summary_feasible_count(data: dict[str, Any]) -> int | None:
     summary = data.get("summary") or {}
     if "num_feasible" in summary:
         return int(_num(summary["num_feasible"]))
-    return sum(1 for case in data["test_results"] if case.get("is_feasible"))
+    return None
 
 
 def total_score(data: dict[str, Any]) -> float:
@@ -58,6 +62,17 @@ def case_ids(data: dict[str, Any]) -> set[int]:
         int(_num(case.get("test_id"), idx))
         for idx, case in enumerate(data["test_results"])
     }
+
+
+def duplicate_case_ids(data: dict[str, Any]) -> list[int]:
+    seen: set[int] = set()
+    duplicates: set[int] = set()
+    for idx, case in enumerate(data["test_results"]):
+        test_id = int(_num(case.get("test_id"), idx))
+        if test_id in seen:
+            duplicates.add(test_id)
+        seen.add(test_id)
+    return sorted(duplicates)
 
 
 def avg_runtime(data: dict[str, Any]) -> float:
@@ -154,8 +169,10 @@ def compare(
     candidate_cases = case_count(candidate)
     required_cases = baseline_cases if min_cases is None else min_cases
     candidate_feasible = feasible_count(candidate)
+    candidate_summary_feasible = summary_feasible_count(candidate)
     baseline_ids = case_ids(baseline)
     candidate_ids = case_ids(candidate)
+    candidate_duplicate_ids = duplicate_case_ids(candidate)
 
     messages = [
         f"baseline_score={baseline_score:.6f}",
@@ -169,6 +186,18 @@ def compare(
     if candidate_cases < required_cases:
         ok = False
         messages.append(f"FAIL: candidate has {candidate_cases} cases, expected at least {required_cases}")
+    if candidate_summary_feasible is not None and candidate_summary_feasible != candidate_feasible:
+        ok = False
+        messages.append(
+            f"FAIL: candidate summary.num_feasible={candidate_summary_feasible} "
+            f"does not match per-case feasible count {candidate_feasible}"
+        )
+    if candidate_duplicate_ids:
+        ok = False
+        preview = ", ".join(str(test_id) for test_id in candidate_duplicate_ids[:10])
+        if len(candidate_duplicate_ids) > 10:
+            preview += ", ..."
+        messages.append(f"FAIL: candidate has duplicate test_id values: {preview}")
     missing_ids = sorted(baseline_ids - candidate_ids)
     if missing_ids:
         ok = False

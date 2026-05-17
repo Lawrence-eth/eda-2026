@@ -53,6 +53,17 @@ def test_compare_rejects_infeasible_candidate_even_when_score_is_lower():
     assert any("not fully feasible" in message for message in messages)
 
 
+def test_compare_rejects_stale_feasibility_summary_even_when_score_is_lower():
+    candidate = _result(score=1.5, feasible=True)
+    candidate["test_results"][1]["is_feasible"] = False
+
+    ok, messages = compare_results.compare(_result(score=2.0), candidate)
+
+    assert not ok
+    assert any("summary.num_feasible=2 does not match per-case feasible count 1" in message for message in messages)
+    assert any("not fully feasible" in message for message in messages)
+
+
 def test_compare_rejects_truncated_candidate_result():
     baseline = _result(score=2.0, cases=3)
     candidate = copy.deepcopy(_result(score=1.5, cases=2))
@@ -72,6 +83,17 @@ def test_compare_rejects_missing_baseline_test_ids_even_with_same_case_count():
 
     assert not ok
     assert any("missing baseline test_id values: 1" in message for message in messages)
+
+
+def test_compare_rejects_duplicate_candidate_test_ids():
+    baseline = _result(score=2.0, cases=3)
+    candidate = copy.deepcopy(_result(score=1.5, cases=3))
+    candidate["test_results"][1]["test_id"] = 0
+
+    ok, messages = compare_results.compare(baseline, candidate)
+
+    assert not ok
+    assert any("duplicate test_id values: 0" in message for message in messages)
 
 
 def test_compare_reports_top_weighted_case_deltas():

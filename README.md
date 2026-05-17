@@ -166,8 +166,9 @@ The test harness keeps repository-local scripts importable under both
 across local shells and CI.
 
 Use `scripts/compare_results.py` before publishing a solver update. It requires
-the candidate result to remain fully feasible, include every baseline `test_id`,
-include at least the baseline case count, and strictly lower `total_score` unless
+the candidate result to remain fully feasible according to per-case records,
+include every baseline `test_id`, avoid duplicate candidate IDs, include at
+least the baseline case count, and strictly lower `total_score` unless
 `--allow-equal` is used for a reproducibility check. It also reports the top
 weighted per-case regressions and improvements, including HPWL, area,
 soft-violation, and runtime deltas, so a candidate run can be debugged without
