@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 16 / 16 passed
+- Public regression tests: 18 / 18 passed
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -45,7 +45,7 @@ results/
 scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
   analyze_results.py       Case-level diagnostics for full validation JSON outputs
-  compare_results.py       Publication guard for candidate result JSON files
+  compare_results.py       Publication guard and weighted-delta report for candidate result JSON files
 
 PROJECT_STATUS.md          Development status and reproducibility notes
 ```
@@ -148,7 +148,9 @@ weight share, and the highest-impact case in each block-count range.
 Use `scripts/compare_results.py` before publishing a solver update. It requires
 the candidate result to remain fully feasible, include at least the baseline case
 count, and strictly lower `total_score` unless `--allow-equal` is used for a
-reproducibility check.
+reproducibility check. It also reports the top weighted per-case regressions and
+improvements, including HPWL, area, soft-violation, and runtime deltas, so a
+candidate run can be debugged without manually diffing the full JSON.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 

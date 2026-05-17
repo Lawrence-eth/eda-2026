@@ -17,6 +17,7 @@
 - Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
+- Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 
 ## Current Optimizer
@@ -54,7 +55,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 16 / 16 passed
+- Public regression tests: 18 / 18 passed
 - Official validator: PASSED
 
 Result file:
@@ -108,3 +109,4 @@ python -m pytest -q
 - Use the optimizer-helper regression tests as guardrails before changing boundary-cluster packing, grouping, or MIB heuristics.
 - Keep public smoke tests runnable with or without the official evaluator on `PYTHONPATH`.
 - Run the result-comparison guard before replacing published best-score artifacts.
+- Inspect the weighted per-case delta report from `scripts/compare_results.py` before keeping or discarding a solver experiment.

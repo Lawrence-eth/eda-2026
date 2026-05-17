@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -60,6 +61,78 @@ def avg_runtime(data: dict[str, Any]) -> float:
     return sum(runtimes) / len(runtimes) if runtimes else 0.0
 
 
+def score_weights(cases: list[dict[str, Any]]) -> dict[int, float]:
+    """Reconstruct official exponential case weights by block count."""
+
+    if not cases:
+        return {}
+    max_blocks = max(int(_num(case.get("block_count"))) for case in cases)
+    raw: list[tuple[int, float]] = []
+    for idx, case in enumerate(cases):
+        test_id = int(_num(case.get("test_id"), idx))
+        raw.append((test_id, math.exp(int(_num(case.get("block_count"))) - max_blocks)))
+    total = sum(weight for _, weight in raw) or 1.0
+    return {test_id: weight / total for test_id, weight in raw}
+
+
+def weighted_case_deltas(
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    *,
+    top: int = 5,
+) -> tuple[list[str], list[str]]:
+    """Return formatted largest weighted regressions and improvements."""
+
+    baseline_cases = {
+        int(_num(case.get("test_id"), idx)): case
+        for idx, case in enumerate(baseline["test_results"])
+    }
+    candidate_cases = {
+        int(_num(case.get("test_id"), idx)): case
+        for idx, case in enumerate(candidate["test_results"])
+    }
+    weights = score_weights(list(baseline_cases.values()))
+
+    rows = []
+    for test_id in sorted(set(baseline_cases) & set(candidate_cases)):
+        bcase = baseline_cases[test_id]
+        ccase = candidate_cases[test_id]
+        bcost = _num(bcase.get("cost"))
+        ccost = _num(ccase.get("cost"))
+        weighted_delta = (ccost - bcost) * weights.get(test_id, 0.0)
+        rows.append(
+            {
+                "test_id": test_id,
+                "block_count": int(_num(ccase.get("block_count"), _num(bcase.get("block_count")))),
+                "baseline_cost": bcost,
+                "candidate_cost": ccost,
+                "cost_delta": ccost - bcost,
+                "weighted_delta": weighted_delta,
+                "hpwl_delta": _num(ccase.get("hpwl_gap")) - _num(bcase.get("hpwl_gap")),
+                "area_delta": _num(ccase.get("area_gap")) - _num(bcase.get("area_gap")),
+                "soft_delta": _num(ccase.get("violations_relative")) - _num(bcase.get("violations_relative")),
+                "runtime_delta": _num(ccase.get("runtime_seconds")) - _num(bcase.get("runtime_seconds")),
+            }
+        )
+
+    def fmt(row: dict[str, Any]) -> str:
+        return (
+            f"test_id={row['test_id']} blocks={row['block_count']} "
+            f"cost_delta={row['cost_delta']:+.6f} "
+            f"weighted_delta={row['weighted_delta']:+.6f} "
+            f"candidate_cost={row['candidate_cost']:.6f} "
+            f"baseline_cost={row['baseline_cost']:.6f} "
+            f"hpwl_delta={row['hpwl_delta']:+.4f} "
+            f"area_delta={row['area_delta']:+.4f} "
+            f"soft_delta={row['soft_delta']:+.4f} "
+            f"runtime_delta={row['runtime_delta']:+.4f}s"
+        )
+
+    regressions = [fmt(row) for row in sorted(rows, key=lambda r: r["weighted_delta"], reverse=True) if row["weighted_delta"] > 0]
+    improvements = [fmt(row) for row in sorted(rows, key=lambda r: r["weighted_delta"]) if row["weighted_delta"] < 0]
+    return regressions[:top], improvements[:top]
+
+
 def compare(
     baseline: dict[str, Any],
     candidate: dict[str, Any],
@@ -98,6 +171,14 @@ def compare(
         messages.append(f"FAIL: candidate score is {comparator} baseline")
     if ok:
         messages.append("PASS: candidate satisfies the publication guard")
+
+    regressions, improvements = weighted_case_deltas(baseline, candidate)
+    if regressions:
+        messages.append("Top weighted regressions:")
+        messages.extend(f"  {row}" for row in regressions)
+    if improvements:
+        messages.append("Top weighted improvements:")
+        messages.extend(f"  {row}" for row in improvements)
     return ok, messages
 
 
