@@ -13,6 +13,8 @@
 - Added connectivity-aware ordering for movable boundary blocks on each perimeter edge.
 - Published local validation artifacts in `results/`.
 - Added `scripts/analyze_results.py` for case-level score diagnostics, weighted-contribution analysis, and block-count range summaries.
+- Added optional official-evaluator enrichment to `scripts/analyze_results.py` so saved full results can show per-case boundary, grouping, and MIB violation counts without rerunning the optimizer.
+- Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 
 ## Current Optimizer
 
@@ -83,7 +85,14 @@ From the contest directory after copying `contest_solution/my_optimizer.py` into
 python -m pytest test_my_optimizer.py -q
 PYTHONPATH=.. python iccad2026_evaluate.py --validate my_optimizer.py --quick
 PYTHONPATH=.. python iccad2026_evaluate.py --evaluate my_optimizer.py --verbose --save-solutions --output results/boundary_full.json
+```
+
+From the repository root:
+
+```bash
 python scripts/analyze_results.py results/boundary_full.json
+python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
+python -m pytest tests/test_analyze_results.py -q
 ```
 
 ## Next Improvement Ideas

@@ -28,6 +28,9 @@ contest_solution/
   my_optimizer.py          Main optimizer implementation
   test_my_optimizer.py     Local feasibility/unit tests
 
+tests/
+  test_analyze_results.py  Regression tests for result diagnostics
+
 docs/extracted/
   C_20260325.txt           Extracted text from the contest specification PDF
   Problem C_QA_0508.txt    Extracted text from the contest Q&A PDF
@@ -125,6 +128,15 @@ python scripts/analyze_results.py results/boundary_full.json --top 30
 ```
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
+
+When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
+
+```bash
+python scripts/analyze_results.py results/boundary_full.json \
+  --contest-dir external/FloorSet/iccad2026contest
+```
+
+Use the same Python environment as the official evaluator for this enriched mode.
 
 ## Next improvement directions
 
