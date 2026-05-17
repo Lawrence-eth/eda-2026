@@ -18,8 +18,10 @@
 - Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
 - Added score-concentration reporting to `scripts/analyze_results.py` so optimization cycles can see cumulative weight and score share for the top high-block-count cases.
 - Extended `scripts/analyze_results.py` with weighted metric-pressure estimates for HPWL, area, and soft-violation-ratio improvements, plus score-weighted soft-driver ranking when enriched counts are present.
+- Extended `scripts/analyze_results.py` with optional structural case profiles from the official checkout, including fixed/preplaced block counts, boundary demand, cluster and MIB group pressure, and B2B/P2B net counts for weighted focus cases.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added analyzer regression tests for metric-pressure and score-weighted soft-driver calculations.
+- Added analyzer regression tests for structural constraint-profile extraction and reporting.
 - Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
@@ -68,7 +70,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 35 / 35 passed with contest dependencies
+- Public regression tests: 37 / 37 passed in the dependency-light suite
 - Official validator: PASSED
 
 Result file:
@@ -130,6 +132,10 @@ score and summary averages are consistent with the per-case metrics.
 The analyzer's score-concentration section should be checked before solver
 experiments so case-level tuning focuses on the cases that materially affect
 the block-count weighted score.
+When run with `--contest-dir`, the analyzer should also be used to inspect the
+weighted cases' structural profile. High boundary density points toward
+perimeter ordering and boundary-cluster packing experiments; dense B2B
+connectivity points toward connectivity-aware ordering or local movement.
 The public release check combines the result audit with a public-facing docs
 scan and optional optimizer-copy synchronization, so a release can fail early if
 the uploaded optimizer diverges from the validated contest copy or the docs

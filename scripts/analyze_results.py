@@ -76,6 +76,83 @@ def _extract_gt_positions(polygons: Any, block_count: int) -> list[tuple[float, 
     return positions
 
 
+def _cell(value: Any) -> float:
+    """Return a numeric scalar from tensors, numpy values, or plain numbers."""
+
+    if hasattr(value, "item"):
+        value = value.item()
+    return _num(value)
+
+
+def _matrix_rows(matrix: Any, rows: int | None = None) -> list[list[float]]:
+    if matrix is None:
+        return []
+    if hasattr(matrix, "detach"):
+        data = matrix.detach().cpu().tolist()
+    elif hasattr(matrix, "tolist"):
+        data = matrix.tolist()
+    else:
+        data = matrix
+    if data is None:
+        return []
+    out = []
+    limit = len(data) if rows is None else min(rows, len(data))
+    for idx in range(limit):
+        row = data[idx]
+        if not isinstance(row, (list, tuple)):
+            row = [row]
+        out.append([_cell(value) for value in row])
+    return out
+
+
+def _valid_edge_count(edges: Any) -> int:
+    return sum(1 for row in _matrix_rows(edges) if row and int(row[0]) != -1)
+
+
+def add_constraint_profile(
+    case: dict[str, Any],
+    constraints: Any,
+    b2b_connectivity: Any = None,
+    p2b_connectivity: Any = None,
+) -> None:
+    """Attach public-safe structural counts for the case inputs.
+
+    These fields explain why a high-weight case is difficult without exposing
+    private solution details: fixed/preplaced blocks, boundary demand, cluster
+    and MIB group pressure, and net counts.
+    """
+
+    block_count = int(_num(case.get("block_count")))
+    rows = _matrix_rows(constraints, block_count)
+    if not rows:
+        return
+
+    def nonzero_count(col: int) -> int:
+        return sum(1 for row in rows if len(row) > col and int(row[col]) != 0)
+
+    def positive_values(col: int) -> list[int]:
+        return [int(row[col]) for row in rows if len(row) > col and int(row[col]) > 0]
+
+    boundary_codes = positive_values(4)
+    cluster_ids = positive_values(3)
+    mib_ids = positive_values(2)
+    case["constraint_fixed_blocks"] = nonzero_count(0)
+    case["constraint_preplaced_blocks"] = nonzero_count(1)
+    case["constraint_mib_blocks"] = len(mib_ids)
+    case["constraint_mib_groups"] = len(set(mib_ids))
+    case["constraint_cluster_blocks"] = len(cluster_ids)
+    case["constraint_cluster_groups"] = len(set(cluster_ids))
+    case["constraint_boundary_blocks"] = len(boundary_codes)
+    code_counts: dict[str, int] = {}
+    for code in boundary_codes:
+        code_counts[str(code)] = code_counts.get(str(code), 0) + 1
+    case["constraint_boundary_codes"] = dict(sorted(code_counts.items(), key=lambda item: int(item[0])))
+    if b2b_connectivity is not None:
+        case["b2b_edges"] = _valid_edge_count(b2b_connectivity)
+    if p2b_connectivity is not None:
+        case["p2b_edges"] = _valid_edge_count(p2b_connectivity)
+
+
 def _load_official_module(contest_dir: Path) -> Any:
     evaluator_path = contest_dir / "iccad2026_evaluate.py"
     if not evaluator_path.exists():
@@ -94,6 +171,34 @@ def _load_official_module(contest_dir: Path) -> Any:
             "Run this command with the same Python environment used for contest evaluation."
         ) from exc
     return module
+
+
+def annotate_with_official_constraint_profile(
+    cases: list[dict[str, Any]],
+    contest_dir: Path,
+    data_path: Path | None = None,
+) -> None:
+    official = _load_official_module(contest_dir)
+    dataset_root = data_path if data_path is not None else contest_dir.parent
+
+    with contextlib.redirect_stdout(sys.stderr):
+        dataset = official.FloorplanDatasetLiteTest(str(dataset_root))
+
+    annotated = 0
+    for case in cases:
+        if case.get("error") is not None:
+            continue
+        test_id = int(_num(case.get("test_id"), -1))
+        if test_id < 0:
+            continue
+        sample = dataset[test_id]
+        area_target, b2b_conn, p2b_conn, _pins_pos, constraints = sample["input"]
+        block_count = int(_num(case.get("block_count"))) or int((area_target != -1).sum().item())
+        case["block_count"] = block_count
+        add_constraint_profile(case, constraints, b2b_conn, p2b_conn)
+        annotated += 1
+
+    print(f"Annotated constraint profiles for {annotated}/{len(cases)} cases using {contest_dir}", file=sys.stderr)
 
 
 def enrich_with_official_soft_counts(
@@ -124,7 +229,7 @@ def enrich_with_official_soft_counts(
 
     enriched = 0
     for case in cases:
-        if "positions" not in case or case.get("error") is not None:
+        if case.get("error") is not None:
             continue
         test_id = int(_num(case.get("test_id"), -1))
         if test_id < 0:
@@ -132,6 +237,9 @@ def enrich_with_official_soft_counts(
         sample = dataset[test_id]
         inputs, labels = sample["input"], sample["label"]
         area_target, b2b_conn, p2b_conn, pins_pos, constraints = inputs
+        add_constraint_profile(case, constraints, b2b_conn, p2b_conn)
+        if "positions" not in case:
+            continue
         polygons, _ = labels
         block_count = int(_num(case.get("block_count")))
         baseline, target_pos = evaluator._extract_baseline(test_id, labels, b2b_conn, p2b_conn, pins_pos, block_count)
@@ -179,6 +287,16 @@ def write_enriched_result(original: dict[str, Any], cases: list[dict[str, Any]],
             "total_soft_violations",
             "max_possible_violations",
             "recomputed_violations_relative",
+            "constraint_fixed_blocks",
+            "constraint_preplaced_blocks",
+            "constraint_boundary_blocks",
+            "constraint_boundary_codes",
+            "constraint_cluster_blocks",
+            "constraint_cluster_groups",
+            "constraint_mib_blocks",
+            "constraint_mib_groups",
+            "b2b_edges",
+            "p2b_edges",
         ],
     }
     enriched["diagnostics"] = diagnostics
@@ -217,6 +335,15 @@ def fmt_weighted(value: float) -> str:
 
 
 def fmt_case(case: dict[str, Any]) -> str:
+    constraint_bits = ""
+    if "constraint_boundary_blocks" in case:
+        constraint_bits = (
+            f" constraints=boundary:{case.get('constraint_boundary_blocks')}"
+            f" cluster:{case.get('constraint_cluster_blocks')}/{case.get('constraint_cluster_groups')}"
+            f" mib:{case.get('constraint_mib_blocks')}/{case.get('constraint_mib_groups')}"
+            f" preplaced:{case.get('constraint_preplaced_blocks')}"
+            f" nets:{case.get('b2b_edges', 'N/A')}/{case.get('p2b_edges', 'N/A')}"
+        )
     return (
         f"test_id={case.get('test_id'):>3} "
         f"blocks={case.get('block_count'):>3} "
@@ -231,6 +358,7 @@ def fmt_case(case: dict[str, Any]) -> str:
         f"soft_count={_get_any(case, ['total_soft_violations'], 'N/A')}/"
         f"{_get_any(case, ['max_possible_violations'], 'N/A')} "
         f"runtime={_num(case.get('runtime_seconds')):6.3f}s"
+        f"{constraint_bits}"
     )
 
 
@@ -323,6 +451,35 @@ def print_score_concentration(cases: list[dict[str, Any]]) -> None:
             f"avg_hpwl={row['avg_hpwl']:.4f}, "
             f"avg_area={row['avg_area']:.4f}, "
             f"avg_soft={row['avg_soft']:.4f}"
+        )
+
+
+def print_constraint_profile(cases: list[dict[str, Any]], top: int) -> None:
+    profiled = [case for case in cases if "constraint_boundary_blocks" in case]
+    if not profiled:
+        return
+    ordered = sorted(profiled, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True)
+    focus = ordered[: max(1, min(top, len(ordered)))]
+    print("\n## Constraint profile for weighted focus cases")
+    print(
+        f"- focus_cases={len(focus)}, "
+        f"avg_boundary_blocks={avg([_num(c.get('constraint_boundary_blocks')) for c in focus]):.2f}, "
+        f"avg_cluster_blocks={avg([_num(c.get('constraint_cluster_blocks')) for c in focus]):.2f}, "
+        f"avg_cluster_groups={avg([_num(c.get('constraint_cluster_groups')) for c in focus]):.2f}, "
+        f"avg_mib_blocks={avg([_num(c.get('constraint_mib_blocks')) for c in focus]):.2f}, "
+        f"avg_preplaced={avg([_num(c.get('constraint_preplaced_blocks')) for c in focus]):.2f}, "
+        f"avg_b2b_edges={avg([_num(c.get('b2b_edges')) for c in focus]):.1f}, "
+        f"avg_p2b_edges={avg([_num(c.get('p2b_edges')) for c in focus]):.1f}"
+    )
+    boundary_codes: dict[str, float] = defaultdict(float)
+    for case in focus:
+        for code, count in (case.get("constraint_boundary_codes") or {}).items():
+            boundary_codes[str(code)] += _num(count)
+    if boundary_codes:
+        ordered_codes = sorted(boundary_codes.items(), key=lambda item: (-item[1], int(item[0])))
+        print(
+            "- boundary_code_totals="
+            + ", ".join(f"{code}:{int(count)}" for code, count in ordered_codes)
         )
 
 
@@ -477,6 +634,18 @@ def recommendation(cases: list[dict[str, Any]]) -> str:
 
     if runtime > 5.0:
         primary += "; also watch runtime on the largest cases"
+    profiled_focus = [c for c in focus if "constraint_boundary_blocks" in c]
+    if profiled_focus:
+        avg_blocks = avg([_num(c.get("block_count")) for c in profiled_focus])
+        avg_boundary = avg([_num(c.get("constraint_boundary_blocks")) for c in profiled_focus])
+        avg_cluster = avg([_num(c.get("constraint_cluster_blocks")) for c in profiled_focus])
+        avg_b2b = avg([_num(c.get("b2b_edges")) for c in profiled_focus])
+        if avg_blocks > 0 and avg_boundary >= 0.25 * avg_blocks:
+            primary += "; high boundary density makes perimeter ordering/packing especially important"
+        if avg_blocks > 0 and avg_cluster >= 0.20 * avg_blocks:
+            primary += "; cluster packing remains a meaningful interaction with area/HPWL"
+        if avg_b2b > 3000:
+            primary += "; dense B2B connectivity favors connectivity-aware ordering changes"
     range_name, range_share = dominant_block_range(cases)
     return (
         f"Weighted worst-case averages: hpwl={hpwl:.4f}, area={area:.4f}, "
@@ -534,6 +703,7 @@ def main() -> None:
     print_cases("Worst cases by weighted contribution", sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True), args.top)
     print_aggregates(cases)
     print_score_concentration(cases)
+    print_constraint_profile(cases, min(args.top, 20))
     print_soft_totals(cases)
     print_metric_pressure(cases, min(args.top, 20))
     print("\n## Recommendation")

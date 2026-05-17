@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 30 / 30 passed with contest dependencies
+- Public regression tests: 37 / 37 passed in the dependency-light suite
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -195,6 +195,11 @@ python scripts/analyze_results.py results/boundary_full.json \
 ```
 
 Use the same Python environment as the official evaluator for this enriched mode.
+The enriched report also adds structural case profiles for the weighted focus
+cases, including fixed/preplaced block counts, boundary demand, cluster and MIB
+group pressure, and B2B/P2B net counts. This helps distinguish whether the next
+solver experiment should focus on perimeter ordering, cluster packing,
+connectivity-aware placement, or soft-constraint repair.
 To keep the published best-result artifact unchanged while saving the enriched
 attribution for later debugging, write a separate diagnostic copy:
 

@@ -45,6 +45,60 @@ def test_fmt_case_includes_soft_violation_attribution_when_present():
     assert "soft_count=6/20" in formatted
 
 
+def test_add_constraint_profile_counts_case_structure_without_evaluator():
+    case = {"test_id": 9, "block_count": 4}
+    constraints = [
+        [1, 1, 0, 0, 1],
+        [0, 0, 2, 3, 2],
+        [0, 0, 2, 3, 5],
+        [0, 0, 0, 0, 0],
+    ]
+    b2b = [[0, 1, 1.0], [-1, -1, -1.0], [2, 3, 0.5]]
+    p2b = [[0, 1, 1.0], [-1, -1, -1.0]]
+
+    analyze_results.add_constraint_profile(case, constraints, b2b, p2b)
+
+    assert case["constraint_fixed_blocks"] == 1
+    assert case["constraint_preplaced_blocks"] == 1
+    assert case["constraint_mib_blocks"] == 2
+    assert case["constraint_mib_groups"] == 1
+    assert case["constraint_cluster_blocks"] == 2
+    assert case["constraint_cluster_groups"] == 1
+    assert case["constraint_boundary_blocks"] == 3
+    assert case["constraint_boundary_codes"] == {"1": 1, "2": 1, "5": 1}
+    assert case["b2b_edges"] == 2
+    assert case["p2b_edges"] == 1
+
+
+def test_fmt_case_includes_constraint_profile_when_present():
+    case = {
+        "test_id": 7,
+        "block_count": 42,
+        "cost": 1.25,
+        "_weighted_contribution": 0.5,
+        "hpwl_gap": 0.1,
+        "area_gap": 0.2,
+        "violations_relative": 0.3,
+        "runtime_seconds": 0.4,
+        "constraint_boundary_blocks": 8,
+        "constraint_cluster_blocks": 6,
+        "constraint_cluster_groups": 2,
+        "constraint_mib_blocks": 3,
+        "constraint_mib_groups": 1,
+        "constraint_preplaced_blocks": 4,
+        "b2b_edges": 100,
+        "p2b_edges": 50,
+    }
+
+    formatted = analyze_results.fmt_case(case)
+
+    assert "constraints=boundary:8" in formatted
+    assert "cluster:6/2" in formatted
+    assert "mib:3/1" in formatted
+    assert "preplaced:4" in formatted
+    assert "nets:100/50" in formatted
+
+
 def test_fmt_case_keeps_tiny_weighted_contribution_visible():
     case = {
         "test_id": 1,
