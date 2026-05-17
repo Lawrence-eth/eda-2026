@@ -140,6 +140,7 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 ```bash
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
+python scripts/analyze_results.py results/boundary_full.json --write-focus-json results/focus_cases.json
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python scripts/check_public_release.py
@@ -161,6 +162,10 @@ primarily by the largest high-block-count instances rather than average cost.
 The analyzer also estimates reconstructed-score pressure from small HPWL,
 area, and soft-violation-ratio improvements, plus score-weighted soft-violation
 drivers when enriched boundary/grouping/MIB counts are available.
+Use `--write-focus-json` to save a compact planning artifact with the dominant
+score range, score concentration, metric-pressure estimates, recommendation,
+top weighted cases, and top local-sensitivity cases. This artifact is intended
+for experiment planning and does not replace the published best-result JSON.
 The test harness keeps repository-local scripts importable under both
 `pytest` and `python -m pytest` so diagnostics can be checked consistently
 across local shells and CI.

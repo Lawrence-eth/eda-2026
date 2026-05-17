@@ -19,6 +19,7 @@
 - Added score-concentration reporting to `scripts/analyze_results.py` so optimization cycles can see cumulative weight and score share for the top high-block-count cases.
 - Extended `scripts/analyze_results.py` with weighted metric-pressure estimates for HPWL, area, and soft-violation-ratio improvements, plus score-weighted soft-driver ranking when enriched counts are present.
 - Extended `scripts/analyze_results.py` with optional structural case profiles from the official checkout, including fixed/preplaced block counts, boundary demand, cluster and MIB group pressure, and B2B/P2B net counts for weighted focus cases.
+- Added `--write-focus-json` to `scripts/analyze_results.py` so high-impact weighted cases, score concentration, metric pressure, and the recommendation can be saved as a compact planning artifact without replacing the published best-result JSON.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added analyzer regression tests for metric-pressure and score-weighted soft-driver calculations.
 - Added analyzer regression tests for structural constraint-profile extraction and reporting.
@@ -111,6 +112,7 @@ From the repository root:
 
 ```bash
 python scripts/analyze_results.py results/boundary_full.json
+python scripts/analyze_results.py results/boundary_full.json --write-focus-json results/focus_cases.json
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_diagnostics.json
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
@@ -132,6 +134,8 @@ score and summary averages are consistent with the per-case metrics.
 The analyzer's score-concentration section should be checked before solver
 experiments so case-level tuning focuses on the cases that materially affect
 the block-count weighted score.
+The compact focus JSON can be regenerated for each candidate or enriched result
+to keep experiment notes aligned with the current weighted-score drivers.
 When run with `--contest-dir`, the analyzer should also be used to inspect the
 weighted cases' structural profile. High boundary density points toward
 perimeter ordering and boundary-cluster packing experiments; dense B2B

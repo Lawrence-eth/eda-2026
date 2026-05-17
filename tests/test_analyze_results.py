@@ -281,3 +281,73 @@ def test_write_enriched_result_preserves_score_and_adds_diagnostics(tmp_path):
     assert written["test_results"] == cases
     assert written["diagnostics"]["enriched_soft_counts"]["source_result"].endswith("baseline.json")
     assert "grouping_violations" in written["diagnostics"]["enriched_soft_counts"]["fields"]
+
+
+def test_focus_report_exports_weighted_and_sensitivity_targets(tmp_path):
+    data = {
+        "total_score": 2.0,
+        "summary": {"num_feasible": 2},
+    }
+    cases = [
+        {
+            "test_id": 1,
+            "block_count": 119,
+            "cost": 3.0,
+            "hpwl_gap": 1.0,
+            "area_gap": 1.0,
+            "violations_relative": 0.1,
+            "runtime_seconds": 0.1,
+            "grouping_violations": 2,
+        },
+        {
+            "test_id": 2,
+            "block_count": 120,
+            "cost": 1.0,
+            "hpwl_gap": 0.2,
+            "area_gap": 0.2,
+            "violations_relative": 0.0,
+            "runtime_seconds": 0.2,
+            "boundary_violations": 1,
+        },
+    ]
+    analyze_results.add_weights(cases)
+
+    report = analyze_results.focus_report(data, cases, tmp_path / "baseline.json", top=1)
+
+    assert report["source_result"].endswith("baseline.json")
+    assert report["total_score"] == 2.0
+    assert report["dominant_score_range"]["range"] == "101-120"
+    assert report["score_concentration"][0]["top_n"] == 1
+    assert report["metric_pressure"]["hpwl_per_0_1"] > 0.0
+    assert report["soft_driver_pressure"]["grouping"] > 0.0
+    assert len(report["top_weighted_cases"]) == 1
+    assert report["top_weighted_cases"][0]["test_id"] == 1
+    assert len(report["top_sensitivity_cases"]) == 1
+    assert "recommendation" in report
+
+
+def test_write_focus_report_creates_compact_json(tmp_path):
+    data = {
+        "total_score": 1.0,
+        "summary": {"num_feasible": 1},
+    }
+    cases = [
+        {
+            "test_id": 7,
+            "block_count": 120,
+            "cost": 1.0,
+            "hpwl_gap": 0.1,
+            "area_gap": 0.2,
+            "violations_relative": 0.0,
+            "runtime_seconds": 0.1,
+        }
+    ]
+    analyze_results.add_weights(cases)
+    out = tmp_path / "diagnostics" / "focus.json"
+
+    analyze_results.write_focus_report(data, cases, out, tmp_path / "baseline.json", top=5)
+
+    written = json.loads(out.read_text())
+    assert written["top_weighted_cases"] == written["top_sensitivity_cases"]
+    assert written["top_weighted_cases"][0]["test_id"] == 7
+    assert "positions" not in written["top_weighted_cases"][0]

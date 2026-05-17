@@ -10,6 +10,7 @@ Usage:
     python scripts/analyze_results.py results/boundary_full.json --top 30
     python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
     python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_full.json
+    python scripts/analyze_results.py results/boundary_full.json --write-focus-json results/focus_cases.json
 """
 from __future__ import annotations
 
@@ -604,6 +605,83 @@ def print_metric_pressure(cases: list[dict[str, Any]], top: int) -> None:
         print(f"  {row}")
 
 
+def compact_case(case: dict[str, Any]) -> dict[str, Any]:
+    """Return stable, compact fields for focus-case JSON artifacts."""
+
+    fields = [
+        "test_id",
+        "block_count",
+        "cost",
+        "hpwl_gap",
+        "area_gap",
+        "violations_relative",
+        "runtime_seconds",
+        "_score_weight",
+        "_weighted_contribution",
+        "boundary_violations",
+        "grouping_violations",
+        "mib_violations",
+        "total_soft_violations",
+        "max_possible_violations",
+        "constraint_fixed_blocks",
+        "constraint_preplaced_blocks",
+        "constraint_boundary_blocks",
+        "constraint_boundary_codes",
+        "constraint_cluster_blocks",
+        "constraint_cluster_groups",
+        "constraint_mib_blocks",
+        "constraint_mib_groups",
+        "b2b_edges",
+        "p2b_edges",
+    ]
+    out: dict[str, Any] = {}
+    for field in fields:
+        if field not in case:
+            continue
+        value = case[field]
+        if isinstance(value, float):
+            out[field] = round(value, 12)
+        else:
+            out[field] = value
+    return out
+
+
+def focus_report(data: dict[str, Any], cases: list[dict[str, Any]], source_path: Path, top: int) -> dict[str, Any]:
+    """Build a compact repeatable planning artifact for score experiments."""
+
+    weighted = sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True)
+    sensitivity = sorted(
+        cases,
+        key=lambda c: max(
+            _num(c.get("_score_weight")) * _num(c.get("cost")) * (ALPHA / max(_quality_factor(c), 1e-12)) * 0.1,
+            _num(c.get("_score_weight")) * _num(c.get("cost")) * BETA * 0.01,
+        ),
+        reverse=True,
+    )
+    range_name, range_share = dominant_block_range(cases)
+    return {
+        "source_result": str(source_path),
+        "total_score": data.get("total_score"),
+        "summary": data.get("summary") or {},
+        "dominant_score_range": {"range": range_name, "score_share": round(range_share, 12)},
+        "score_concentration": score_concentration(cases),
+        "metric_pressure": {key: round(value, 12) for key, value in metric_pressure(cases).items()},
+        "soft_driver_pressure": {
+            key: round(value, 12) for key, value in soft_driver_pressure(cases).items()
+        },
+        "recommendation": recommendation(cases),
+        "top_weighted_cases": [compact_case(case) for case in weighted[:top]],
+        "top_sensitivity_cases": [compact_case(case) for case in sensitivity[:top]],
+    }
+
+
+def write_focus_report(data: dict[str, Any], cases: list[dict[str, Any]], output_path: Path, source_path: Path, top: int) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w") as f:
+        json.dump(focus_report(data, cases, source_path, top), f, indent=2)
+        f.write("\n")
+
+
 def recommendation(cases: list[dict[str, Any]]) -> str:
     weighted = sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True)
     focus = weighted[: max(1, min(20, len(weighted)))]
@@ -677,6 +755,12 @@ def main() -> None:
         default=None,
         help="Write a diagnostic JSON copy containing recomputed boundary/grouping/MIB counts; requires --contest-dir",
     )
+    parser.add_argument(
+        "--write-focus-json",
+        type=Path,
+        default=None,
+        help="Write a compact JSON planning artifact for the highest-impact weighted cases",
+    )
     args = parser.parse_args()
 
     path = Path(args.result_json)
@@ -690,6 +774,9 @@ def main() -> None:
         write_enriched_result(data, cases, args.write_enriched, path)
         print(f"Wrote enriched diagnostic JSON: {args.write_enriched}", file=sys.stderr)
     add_weights(cases)
+    if args.write_focus_json is not None:
+        write_focus_report(data, cases, args.write_focus_json, path, args.top)
+        print(f"Wrote focus-case diagnostic JSON: {args.write_focus_json}", file=sys.stderr)
 
     total_score = data.get("total_score")
     summary = data.get("summary") or {}
