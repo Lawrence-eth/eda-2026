@@ -23,6 +23,8 @@
 - Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, and saved rectangle shape.
 - Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
 - Extended the result audit to reconstruct the block-count weighted total score and verify published summary averages against per-case metrics.
+- Added `scripts/check_public_release.py` as a combined publication gate for result auditing, public-facing documentation scan, candidate comparison, and optional optimizer-copy synchronization.
+- Added release-check regression tests covering public wording boundaries, optimizer synchronization, and combined gate behavior.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 - Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
 - Added repository pytest configuration so `pytest` and `python -m pytest` both resolve local `scripts` imports reliably.
@@ -107,6 +109,7 @@ python scripts/analyze_results.py results/boundary_full.json --contest-dir exter
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_diagnostics.json
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
+python scripts/check_public_release.py --contest-optimizer /path/to/FloorSet/iccad2026contest/my_optimizer.py
 python -m pytest -q
 ```
 
@@ -120,6 +123,10 @@ best-result artifacts. The result audit should pass on any published full-run
 artifact before it is compared or copied over the current best result; it also
 checks that top-level score and summary averages are consistent with the
 per-case metrics.
+The public release check combines the result audit with a public-facing docs
+scan and optional optimizer-copy synchronization, so a release can fail early if
+the uploaded optimizer diverges from the validated contest copy or the docs
+contain wording that should not appear in the public repository.
 
 ## Next Improvement Ideas
 

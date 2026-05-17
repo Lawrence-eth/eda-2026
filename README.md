@@ -47,6 +47,7 @@ scripts/
   analyze_results.py       Case-level diagnostics for full validation JSON outputs
   compare_results.py       Publication guard and weighted-delta report for candidate result JSON files
   audit_results.py         Result artifact integrity and score-consistency audit before publication
+  check_public_release.py  Combined release guard for result audit, docs scan, and optimizer sync
 
 PROJECT_STATUS.md          Development status and reproducibility notes
 ```
@@ -141,6 +142,7 @@ python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
+python scripts/check_public_release.py
 python -m pytest -q
 ```
 
@@ -172,6 +174,11 @@ saved `[x, y, w, h]` rectangles when `--require-positions` is enabled. This
 guard also reconstructs the block-count weighted total score and verifies
 published summary averages when present, catching malformed, stale, or partial
 evaluator outputs before score comparison.
+
+Use `scripts/check_public_release.py` as the final local publication gate. It
+runs the result audit, scans public-facing docs for blocked process wording and
+sensitive terms, and can compare the public optimizer copy against an active
+contest checkout with `--contest-optimizer`.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 
