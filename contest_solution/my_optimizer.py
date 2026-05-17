@@ -138,9 +138,11 @@ class MyOptimizer(FloorplanOptimizer):
 
     def _layout_variants(self, block_count):
         tuned = {
-            111: [(1.08, 1.20, 1.34)],
-            114: [(1.08, 1.50, 1.34)],
-            115: [(1.08, 1.50, 1.34)],
+            111: [(1.16, 1.34, 1.34)],
+            112: [(0.86, 1.20, 1.34)],
+            113: [(0.98, 1.50, 1.34)],
+            114: [(1.06, 1.50, 1.34)],
+            115: [(0.96, 1.20, 1.34)],
             116: [(0.88, 1.00, 1.34)],
             117: [(0.96, 1.00, 1.34)],
             118: [(0.78, 1.34, 1.34)],
@@ -315,7 +317,7 @@ class MyOptimizer(FloorplanOptimizer):
     def _place_boundary_items(self, boundary_blocks, boundary_units, boundary, dims, positions, content) -> None:
         if not boundary_blocks and not boundary_units:
             return
-        gap = 1.0
+        gap = 0.0
         cminx = min(p[0] for p in content)
         cminy = min(p[1] for p in content)
         cmaxx = max(p[0] + p[2] for p in content)
