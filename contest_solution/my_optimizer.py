@@ -140,6 +140,9 @@ class MyOptimizer(FloorplanOptimizer):
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
                 )
+                self._refine_top_boundary_compaction(
+                    positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
+                )
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
@@ -717,6 +720,120 @@ class MyOptimizer(FloorplanOptimizer):
                     improved = True
             if not improved:
                 break
+
+    def _refine_top_boundary_compaction(self, positions, constraints, area_targets,
+                                        b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1 or constraints.shape[1] <= 4:
+            return
+
+        ncols = constraints.shape[1]
+        moving = []
+        for i in range(len(positions)):
+            if int(constraints[i, 4].item()) != 4:
+                continue
+            if ncols > 0 and constraints[i, 0] != 0:
+                continue
+            if ncols > 1 and constraints[i, 1] != 0:
+                continue
+            if ncols > 3 and constraints[i, 3] != 0:
+                continue
+            moving.append(i)
+        if not moving or len(moving) == len(positions):
+            return
+
+        base_area = calculate_bbox_area(positions)
+        base_soft = self._soft_violation_count(positions, constraints)
+        base_wire = self._wirelength_for_blocks(moving, positions, b2b_connectivity, p2b_connectivity, pins_pos)
+        current_top = max(p[1] + p[3] for p in positions)
+        fixed = [i for i in range(len(positions)) if i not in set(moving)]
+        target_top = max(positions[i][1] + positions[i][3] for i in fixed)
+        if target_top >= current_top - 1e-6:
+            return
+
+        left, _bottom, right, _top = self._bbox(positions)
+        trial = list(positions)
+        placed = [positions[i] for i in fixed]
+        for i in sorted(moving, key=lambda k: (positions[k][0], k)):
+            x, _y, w, h = positions[i]
+            y = target_top - h
+            nx = self._nearest_free_x(x, y, w, h, placed, left, right)
+            if nx is None:
+                return
+            rect = (nx, y, w, h)
+            if self._overlaps_any(rect, placed):
+                return
+            trial[i] = rect
+            placed.append(rect)
+
+        if self._has_overlap(trial):
+            return
+        if self._soft_violation_count(trial, constraints) > base_soft:
+            return
+        if calculate_bbox_area(trial) >= base_area - 1e-6:
+            return
+        new_wire = self._wirelength_for_blocks(moving, trial, b2b_connectivity, p2b_connectivity, pins_pos)
+        if new_wire > base_wire + 1e-6:
+            return
+        for i in moving:
+            positions[i] = trial[i]
+
+    def _wirelength_for_blocks(self, blocks, positions, b2b_connectivity, p2b_connectivity, pins_pos):
+        block_set = set(blocks)
+        total = 0.0
+        for e in b2b_connectivity:
+            a, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            if a not in block_set and b not in block_set:
+                continue
+            if 0 <= a < len(positions) and 0 <= b < len(positions):
+                ax, ay, aw, ah = positions[a]
+                bx, by, bw, bh = positions[b]
+                total += w * (abs((ax + 0.5 * aw) - (bx + 0.5 * bw)) +
+                              abs((ay + 0.5 * ah) - (by + 0.5 * bh)))
+        for e in p2b_connectivity:
+            pin, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            if b not in block_set:
+                continue
+            if 0 <= b < len(positions) and 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    bx, by, bw, bh = positions[b]
+                    total += w * (abs((bx + 0.5 * bw) - px) + abs((by + 0.5 * bh) - py))
+        return total
+
+    def _nearest_free_x(self, preferred, y, w, h, placed, left, right):
+        intervals = [(left, right - w)]
+        if intervals[0][1] < intervals[0][0] - 1e-6:
+            return None
+        for ox, oy, ow, oh in placed:
+            if min(y + h, oy + oh) - max(y, oy) <= 1e-6:
+                continue
+            forbid_lo = ox - w
+            forbid_hi = ox + ow
+            next_intervals = []
+            for lo, hi in intervals:
+                if forbid_hi <= lo + 1e-6 or forbid_lo >= hi - 1e-6:
+                    next_intervals.append((lo, hi))
+                    continue
+                if lo <= forbid_lo - 1e-6:
+                    next_intervals.append((lo, min(hi, forbid_lo)))
+                if forbid_hi <= hi - 1e-6:
+                    next_intervals.append((max(lo, forbid_hi), hi))
+            intervals = next_intervals
+            if not intervals:
+                return None
+
+        best = None
+        for lo, hi in intervals:
+            if hi < lo - 1e-6:
+                continue
+            candidate = min(max(preferred, lo), hi)
+            score = (abs(candidate - preferred), candidate)
+            if best is None or score < best[0]:
+                best = (score, candidate)
+        return None if best is None else best[1]
 
     def _bbox(self, positions):
         return (
