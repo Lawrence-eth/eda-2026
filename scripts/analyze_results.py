@@ -30,6 +30,24 @@ DEFAULT_RESULT = ROOT / "results" / "boundary_full.json"
 RANGES = [(21, 40), (41, 60), (61, 80), (81, 100), (101, 120)]
 ALPHA = 0.5
 BETA = 2.0
+ENRICHED_DIAGNOSTIC_FIELDS = (
+    "boundary_violations",
+    "grouping_violations",
+    "mib_violations",
+    "total_soft_violations",
+    "max_possible_violations",
+    "recomputed_violations_relative",
+    "constraint_fixed_blocks",
+    "constraint_preplaced_blocks",
+    "constraint_boundary_blocks",
+    "constraint_boundary_codes",
+    "constraint_cluster_blocks",
+    "constraint_cluster_groups",
+    "constraint_mib_blocks",
+    "constraint_mib_groups",
+    "b2b_edges",
+    "p2b_edges",
+)
 
 
 def _num(value: Any, default: float = 0.0) -> float:
@@ -313,6 +331,92 @@ def load_result(path: Path) -> dict[str, Any]:
     if "test_results" not in data or not isinstance(data["test_results"], list):
         raise SystemExit(f"No test_results list found in {path}")
     return data
+
+
+def _source_matches_result(source: str, result_path: Path) -> bool:
+    """Return True when a diagnostic sidecar names this result file."""
+
+    source_path = Path(source)
+    result_norm = Path(result_path)
+    candidates = {
+        str(result_norm),
+        str(result_norm.as_posix()),
+        result_norm.name,
+    }
+    with contextlib.suppress(ValueError):
+        candidates.add(str(result_norm.resolve().relative_to(ROOT)))
+        candidates.add(result_norm.resolve().relative_to(ROOT).as_posix())
+    return source in candidates or source_path.name == result_norm.name
+
+
+def _compatible_sidecar(base: dict[str, Any], sidecar: dict[str, Any], result_path: Path) -> bool:
+    diagnostics = sidecar.get("diagnostics") or {}
+    enriched = diagnostics.get("enriched_soft_counts") or {}
+    source = enriched.get("source_result")
+    if source and not _source_matches_result(str(source), result_path):
+        return False
+    if not math.isclose(_num(base.get("total_score")), _num(sidecar.get("total_score")), rel_tol=0.0, abs_tol=1e-9):
+        return False
+    base_cases = base.get("test_results") or []
+    sidecar_cases = sidecar.get("test_results") or []
+    if len(base_cases) != len(sidecar_cases):
+        return False
+    for idx, (base_case, sidecar_case) in enumerate(zip(base_cases, sidecar_cases)):
+        base_id = int(_num(base_case.get("test_id"), idx))
+        sidecar_id = int(_num(sidecar_case.get("test_id"), idx))
+        if base_id != sidecar_id:
+            return False
+        if not math.isclose(_num(base_case.get("cost")), _num(sidecar_case.get("cost")), rel_tol=0.0, abs_tol=1e-9):
+            return False
+    return True
+
+
+def _default_sidecar_candidates(result_path: Path) -> list[Path]:
+    return [
+        result_path.with_name("enriched_diagnostics.json"),
+        ROOT / "results" / "enriched_diagnostics.json",
+    ]
+
+
+def merge_enriched_sidecar(
+    data: dict[str, Any],
+    cases: list[dict[str, Any]],
+    result_path: Path,
+    sidecar_path: Path | None = None,
+) -> tuple[int, Path | None]:
+    """Merge matching diagnostic sidecar fields into in-memory case rows.
+
+    The official full-result JSON is kept as the source of score truth.  This
+    only copies derived diagnostic fields from a compatible enriched artifact so
+    the default report can show soft-constraint attribution.
+    """
+
+    candidates = [sidecar_path] if sidecar_path is not None else _default_sidecar_candidates(result_path)
+    for candidate in candidates:
+        if candidate is None or not candidate.exists() or candidate.resolve() == result_path.resolve():
+            continue
+        sidecar = load_result(candidate)
+        if not _compatible_sidecar(data, sidecar, result_path):
+            continue
+        by_id = {
+            int(_num(case.get("test_id"), idx)): case
+            for idx, case in enumerate(sidecar["test_results"])
+        }
+        merged = 0
+        for idx, case in enumerate(cases):
+            test_id = int(_num(case.get("test_id"), idx))
+            enriched_case = by_id.get(test_id)
+            if not enriched_case:
+                continue
+            changed = False
+            for field in ENRICHED_DIAGNOSTIC_FIELDS:
+                if field in enriched_case and (field not in case or case[field] is None):
+                    case[field] = enriched_case[field]
+                    changed = True
+            if changed:
+                merged += 1
+        return merged, candidate
+    return 0, None
 
 
 def add_weights(cases: list[dict[str, Any]]) -> None:
@@ -761,6 +865,17 @@ def main() -> None:
         default=None,
         help="Write a compact JSON planning artifact for the highest-impact weighted cases",
     )
+    parser.add_argument(
+        "--diagnostic-sidecar",
+        type=Path,
+        default=None,
+        help="Optional enriched diagnostic JSON to merge before reporting soft-constraint attribution",
+    )
+    parser.add_argument(
+        "--no-auto-sidecar",
+        action="store_true",
+        help="Disable automatic merge from results/enriched_diagnostics.json when it matches the result file",
+    )
     args = parser.parse_args()
 
     path = Path(args.result_json)
@@ -768,6 +883,15 @@ def main() -> None:
     cases = [dict(c) for c in data["test_results"]]
     if args.write_enriched is not None and args.contest_dir is None:
         raise SystemExit("--write-enriched requires --contest-dir so official soft counts can be reconstructed")
+    if args.diagnostic_sidecar is not None or not args.no_auto_sidecar:
+        merged, merged_path = merge_enriched_sidecar(
+            data,
+            cases,
+            path,
+            args.diagnostic_sidecar,
+        )
+        if merged_path is not None:
+            print(f"Merged diagnostic sidecar fields for {merged}/{len(cases)} cases from {merged_path}", file=sys.stderr)
     if args.contest_dir is not None:
         enrich_with_official_soft_counts(cases, args.contest_dir.resolve(), args.data_path.resolve() if args.data_path else None)
     if args.write_enriched is not None:

@@ -283,6 +283,85 @@ def test_write_enriched_result_preserves_score_and_adds_diagnostics(tmp_path):
     assert "grouping_violations" in written["diagnostics"]["enriched_soft_counts"]["fields"]
 
 
+def test_merge_enriched_sidecar_adds_matching_diagnostic_fields(tmp_path):
+    baseline = {
+        "total_score": 1.25,
+        "test_results": [
+            {"test_id": 3, "block_count": 40, "cost": 2.0},
+            {"test_id": 4, "block_count": 41, "cost": 1.0, "boundary_violations": None},
+        ],
+    }
+    sidecar = {
+        "total_score": 1.25,
+        "diagnostics": {"enriched_soft_counts": {"source_result": "baseline.json"}},
+        "test_results": [
+            {
+                "test_id": 3,
+                "block_count": 40,
+                "cost": 2.0,
+                "boundary_violations": 1,
+                "grouping_violations": 2,
+                "mib_violations": 0,
+                "constraint_boundary_blocks": 8,
+            },
+            {
+                "test_id": 4,
+                "block_count": 41,
+                "cost": 1.0,
+                "boundary_violations": 3,
+                "grouping_violations": 0,
+                "mib_violations": 1,
+                "constraint_boundary_blocks": 9,
+            },
+        ],
+    }
+    baseline_path = tmp_path / "baseline.json"
+    sidecar_path = tmp_path / "enriched.json"
+    baseline_path.write_text(json.dumps(baseline), encoding="utf-8")
+    sidecar_path.write_text(json.dumps(sidecar), encoding="utf-8")
+    cases = [dict(case) for case in baseline["test_results"]]
+
+    merged, used_path = analyze_results.merge_enriched_sidecar(
+        baseline,
+        cases,
+        baseline_path,
+        sidecar_path,
+    )
+
+    assert merged == 2
+    assert used_path == sidecar_path
+    assert cases[0]["grouping_violations"] == 2
+    assert cases[1]["boundary_violations"] == 3
+    assert cases[1]["constraint_boundary_blocks"] == 9
+
+
+def test_merge_enriched_sidecar_rejects_score_or_case_mismatch(tmp_path):
+    baseline = {
+        "total_score": 1.25,
+        "test_results": [{"test_id": 3, "block_count": 40, "cost": 2.0}],
+    }
+    sidecar = {
+        "total_score": 1.26,
+        "diagnostics": {"enriched_soft_counts": {"source_result": "baseline.json"}},
+        "test_results": [{"test_id": 3, "block_count": 40, "cost": 2.0, "boundary_violations": 1}],
+    }
+    baseline_path = tmp_path / "baseline.json"
+    sidecar_path = tmp_path / "enriched.json"
+    sidecar_path.write_text(json.dumps(sidecar), encoding="utf-8")
+    cases = [dict(case) for case in baseline["test_results"]]
+
+    merged, used_path = analyze_results.merge_enriched_sidecar(
+        baseline,
+        cases,
+        baseline_path,
+        sidecar_path,
+    )
+
+    assert merged == 0
+    assert used_path is None
+    assert "boundary_violations" not in cases[0]
+
+
 def test_focus_report_exports_weighted_and_sensitivity_targets(tmp_path):
     data = {
         "total_score": 2.0,

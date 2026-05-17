@@ -122,6 +122,7 @@ python scripts/analyze_results.py results/boundary_full.json
 python scripts/analyze_results.py results/boundary_full.json --write-focus-json results/focus_cases.json
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_diagnostics.json
+python scripts/analyze_results.py results/boundary_full.json --diagnostic-sidecar results/enriched_diagnostics.json
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python scripts/check_public_release.py --contest-optimizer /path/to/FloorSet/iccad2026contest/my_optimizer.py
@@ -141,6 +142,11 @@ score and summary averages are consistent with the per-case metrics.
 The analyzer's score-concentration section should be checked before solver
 experiments so case-level tuning focuses on the cases that materially affect
 the block-count weighted score.
+When `results/enriched_diagnostics.json` matches the published result, the
+analyzer now merges its derived boundary/grouping/MIB counts and structural
+constraint profile into the report automatically. This keeps the published
+best-result JSON unchanged while making default diagnostics specific enough to
+choose the next solver target.
 The compact focus JSON can be regenerated for each candidate or enriched result
 to keep experiment notes aligned with the current weighted-score drivers.
 When run with `--contest-dir`, the analyzer should also be used to inspect the

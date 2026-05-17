@@ -142,6 +142,7 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 ```bash
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
+python scripts/analyze_results.py results/boundary_full.json --diagnostic-sidecar results/enriched_diagnostics.json
 python scripts/analyze_results.py results/boundary_full.json --write-focus-json results/focus_cases.json
 python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
@@ -163,7 +164,10 @@ the top weighted cases, making it clear when a candidate should be judged
 primarily by the largest high-block-count instances rather than average cost.
 The analyzer also estimates reconstructed-score pressure from small HPWL,
 area, and soft-violation-ratio improvements, plus score-weighted soft-violation
-drivers when enriched boundary/grouping/MIB counts are available.
+drivers when enriched boundary/grouping/MIB counts are available. When a
+compatible `results/enriched_diagnostics.json` companion exists, the analyzer
+merges those derived fields into the in-memory report automatically; use
+`--no-auto-sidecar` to inspect the raw evaluator JSON alone.
 Use `--write-focus-json` to save a compact planning artifact with the dominant
 score range, score concentration, metric-pressure estimates, recommendation,
 top weighted cases, and top local-sensitivity cases. The committed
