@@ -38,6 +38,7 @@ results/
 
 scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
+  analyze_results.py       Case-level diagnostics for full validation JSON outputs
 
 PROJECT_STATUS.md          Development status and reproducibility notes
 ```
@@ -113,6 +114,17 @@ Or use:
 ```bash
 bash scripts/setup_and_evaluate.sh
 ```
+
+## Result analysis
+
+After generating `results/boundary_full.json`, use the analysis helper to identify the cases that matter most for the next optimization cycle:
+
+```bash
+python scripts/analyze_results.py
+python scripts/analyze_results.py results/boundary_full.json --top 30
+```
+
+The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
 
 ## Next improvement directions
 

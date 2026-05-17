@@ -12,6 +12,7 @@
 - Added boundary-aware packing for same-edge boundary clusters, placing boundary members on the required edge and packing cluster mates inward.
 - Added connectivity-aware ordering for movable boundary blocks on each perimeter edge.
 - Published local validation artifacts in `results/`.
+- Added `scripts/analyze_results.py` for case-level score diagnostics, weighted-contribution analysis, and block-count range summaries.
 
 ## Current Optimizer
 
@@ -82,6 +83,7 @@ From the contest directory after copying `contest_solution/my_optimizer.py` into
 python -m pytest test_my_optimizer.py -q
 PYTHONPATH=.. python iccad2026_evaluate.py --validate my_optimizer.py --quick
 PYTHONPATH=.. python iccad2026_evaluate.py --evaluate my_optimizer.py --verbose --save-solutions --output results/boundary_full.json
+python scripts/analyze_results.py results/boundary_full.json
 ```
 
 ## Next Improvement Ideas
