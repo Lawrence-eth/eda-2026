@@ -16,7 +16,9 @@
 - Added optional official-evaluator enrichment to `scripts/analyze_results.py` so saved full results can show per-case boundary, grouping, and MIB violation counts without rerunning the optimizer.
 - Added an explicit `--write-enriched` mode to save those reconstructed soft-violation counts as a separate diagnostic JSON without replacing the published best-result artifact.
 - Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
+- Extended `scripts/analyze_results.py` with weighted metric-pressure estimates for HPWL, area, and soft-violation-ratio improvements, plus score-weighted soft-driver ranking when enriched counts are present.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
+- Added analyzer regression tests for metric-pressure and score-weighted soft-driver calculations.
 - Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.

@@ -27,6 +27,8 @@ from typing import Any, Iterable
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESULT = ROOT / "results" / "boundary_full.json"
 RANGES = [(21, 40), (41, 60), (61, 80), (81, 100), (101, 120)]
+ALPHA = 0.5
+BETA = 2.0
 
 
 def _num(value: Any, default: float = 0.0) -> float:
@@ -309,6 +311,99 @@ def print_soft_totals(cases: list[dict[str, Any]]) -> None:
     )
 
 
+def _quality_factor(case: dict[str, Any]) -> float:
+    return 1.0 + ALPHA * (max(0.0, _num(case.get("hpwl_gap"))) + max(0.0, _num(case.get("area_gap"))))
+
+
+def metric_pressure(cases: list[dict[str, Any]]) -> dict[str, float]:
+    """Estimate reconstructed-score reduction from small metric improvements.
+
+    For feasible cases, official cost is:
+    (1 + ALPHA * (hpwl + area)) * exp(BETA * soft) * runtime_adjustment.
+    Using the published per-case cost avoids reconstructing median-runtime
+    details while still giving the local derivative of score with respect to
+    HPWL, area, and soft-violation ratio.
+    """
+
+    totals = {
+        "hpwl_per_0_1": 0.0,
+        "area_per_0_1": 0.0,
+        "soft_per_0_01": 0.0,
+    }
+    for case in cases:
+        weight = _num(case.get("_score_weight"))
+        cost = _num(case.get("cost"))
+        quality = max(_quality_factor(case), 1e-12)
+        totals["hpwl_per_0_1"] += weight * cost * (ALPHA / quality) * 0.1
+        totals["area_per_0_1"] += weight * cost * (ALPHA / quality) * 0.1
+        totals["soft_per_0_01"] += weight * cost * BETA * 0.01
+    return totals
+
+
+def soft_driver_pressure(cases: list[dict[str, Any]]) -> dict[str, float]:
+    """Return score-weighted soft-violation counts by violation family."""
+
+    totals = {"boundary": 0.0, "grouping": 0.0, "mib": 0.0}
+    for case in cases:
+        for kind in totals:
+            value = _violation(case, kind)
+            if value != "N/A":
+                totals[kind] += _num(case.get("_score_weight")) * _num(value)
+    return totals
+
+
+def sensitivity_rows(cases: list[dict[str, Any]], top: int) -> list[str]:
+    rows = []
+    for case in cases:
+        quality = max(_quality_factor(case), 1e-12)
+        weight = _num(case.get("_score_weight"))
+        cost = _num(case.get("cost"))
+        quality_gain_0_1 = weight * cost * (ALPHA / quality) * 0.1
+        soft_gain_0_01 = weight * cost * BETA * 0.01
+        rows.append(
+            {
+                "case": case,
+                "quality_gain_0_1": quality_gain_0_1,
+                "soft_gain_0_01": soft_gain_0_01,
+                "dominant_gain": max(quality_gain_0_1, soft_gain_0_01),
+            }
+        )
+    rows.sort(key=lambda row: row["dominant_gain"], reverse=True)
+    formatted = []
+    for row in rows[:top]:
+        case = row["case"]
+        formatted.append(
+            f"test_id={case.get('test_id'):>3} blocks={case.get('block_count'):>3} "
+            f"score_weight={_num(case.get('_score_weight')):.6f} cost={_num(case.get('cost')):.4f} "
+            f"gain_if_hpwl_or_area_-0.1={fmt_weighted(row['quality_gain_0_1'])} "
+            f"gain_if_soft_-0.01={fmt_weighted(row['soft_gain_0_01'])} "
+            f"hpwl={_num(case.get('hpwl_gap')):.4f} area={_num(case.get('area_gap')):.4f} "
+            f"soft={_num(case.get('violations_relative')):.4f}"
+        )
+    return formatted
+
+
+def print_metric_pressure(cases: list[dict[str, Any]], top: int) -> None:
+    pressure = metric_pressure(cases)
+    print("\n## Weighted metric pressure")
+    print(
+        "- Estimated total-score reduction if every case improved by: "
+        f"HPWL -0.1 => {fmt_weighted(pressure['hpwl_per_0_1'])}, "
+        f"area -0.1 => {fmt_weighted(pressure['area_per_0_1'])}, "
+        f"soft ratio -0.01 => {fmt_weighted(pressure['soft_per_0_01'])}"
+    )
+    soft_pressure = soft_driver_pressure(cases)
+    if any(value > 0 for value in soft_pressure.values()):
+        ordered = sorted(soft_pressure.items(), key=lambda item: item[1], reverse=True)
+        print(
+            "- Score-weighted soft counts: "
+            + ", ".join(f"{name}={value:.3f}" for name, value in ordered)
+        )
+    print("- Highest-impact local sensitivities:")
+    for row in sensitivity_rows(cases, top):
+        print(f"  {row}")
+
+
 def recommendation(cases: list[dict[str, Any]]) -> str:
     weighted = sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True)
     focus = weighted[: max(1, min(20, len(weighted)))]
@@ -396,6 +491,7 @@ def main() -> None:
     print_cases("Worst cases by weighted contribution", sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True), args.top)
     print_aggregates(cases)
     print_soft_totals(cases)
+    print_metric_pressure(cases, min(args.top, 20))
     print("\n## Recommendation")
     print("- " + recommendation(cases))
     if all(_violation(cases[0], k) == "N/A" for k in ("boundary", "grouping", "mib")) if cases else False:

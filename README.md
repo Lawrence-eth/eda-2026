@@ -155,6 +155,9 @@ The report prints the worst cases by raw cost, the worst weighted contributors t
 Small nonzero weighted contributions are printed in scientific notation, and
 the range summary includes reconstructed score contribution, score share,
 weight share, and the highest-impact case in each block-count range.
+The analyzer also estimates reconstructed-score pressure from small HPWL,
+area, and soft-violation-ratio improvements, plus score-weighted soft-violation
+drivers when enriched boundary/grouping/MIB counts are available.
 The test harness keeps repository-local scripts importable under both
 `pytest` and `python -m pytest` so diagnostics can be checked consistently
 across local shells and CI.

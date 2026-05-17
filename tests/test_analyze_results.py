@@ -114,6 +114,76 @@ def test_recommendation_uses_available_soft_violation_driver():
     assert "Dominant score range" in recommendation
 
 
+def test_metric_pressure_uses_weighted_cost_sensitivity():
+    cases = [
+        {
+            "hpwl_gap": 1.0,
+            "area_gap": 1.0,
+            "violations_relative": 0.1,
+            "cost": 2.0,
+            "_score_weight": 0.25,
+        },
+        {
+            "hpwl_gap": 0.0,
+            "area_gap": 0.0,
+            "violations_relative": 0.0,
+            "cost": 1.0,
+            "_score_weight": 0.75,
+        },
+    ]
+
+    pressure = analyze_results.metric_pressure(cases)
+
+    # quality factor is 2.0 for the first case and 1.0 for the second.
+    expected_quality = 0.25 * 2.0 * (0.5 / 2.0) * 0.1 + 0.75 * 1.0 * (0.5 / 1.0) * 0.1
+    expected_soft = 0.25 * 2.0 * 2.0 * 0.01 + 0.75 * 1.0 * 2.0 * 0.01
+    assert math.isclose(pressure["hpwl_per_0_1"], expected_quality)
+    assert math.isclose(pressure["area_per_0_1"], expected_quality)
+    assert math.isclose(pressure["soft_per_0_01"], expected_soft)
+
+
+def test_soft_driver_pressure_uses_score_weighted_counts():
+    cases = [
+        {"_score_weight": 0.8, "boundary_violations": 1, "grouping_violations": 2, "mib_violations": 0},
+        {"_score_weight": 0.2, "boundary_violations": 5, "grouping_violations": 1, "mib_violations": 3},
+    ]
+
+    pressure = analyze_results.soft_driver_pressure(cases)
+
+    assert math.isclose(pressure["boundary"], 1.8)
+    assert math.isclose(pressure["grouping"], 1.8)
+    assert math.isclose(pressure["mib"], 0.6)
+
+
+def test_sensitivity_rows_rank_by_largest_local_score_gain():
+    cases = [
+        {
+            "test_id": 1,
+            "block_count": 100,
+            "hpwl_gap": 1.0,
+            "area_gap": 1.0,
+            "violations_relative": 0.0,
+            "cost": 1.0,
+            "_score_weight": 0.1,
+        },
+        {
+            "test_id": 2,
+            "block_count": 120,
+            "hpwl_gap": 1.0,
+            "area_gap": 1.0,
+            "violations_relative": 0.0,
+            "cost": 2.0,
+            "_score_weight": 0.9,
+        },
+    ]
+
+    rows = analyze_results.sensitivity_rows(cases, top=2)
+
+    assert rows[0].startswith("test_id=  2")
+    assert "gain_if_hpwl_or_area_-0.1" in rows[0]
+    assert "gain_if_soft_-0.01" in rows[0]
+
+
 def test_write_enriched_result_preserves_score_and_adds_diagnostics(tmp_path):
     original = {
         "total_score": 2.052769,
