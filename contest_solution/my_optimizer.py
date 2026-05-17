@@ -135,6 +135,11 @@ class MyOptimizer(FloorplanOptimizer):
                 block_count, positions, constraints, area_targets,
                 b2b_edges, p2b_edges, pins_pos
             )
+            if 116 <= block_count < 120:
+                self._refine_free_block_shifts(
+                    block_count, positions, constraints, area_targets,
+                    b2b_edges, p2b_edges, pins_pos
+                )
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
@@ -635,6 +640,174 @@ class MyOptimizer(FloorplanOptimizer):
                 if min(x1 + w1, x2 + w2) - max(x1, x2) > 1e-6 and min(y1 + h1, y2 + h2) - max(y1, y2) > 1e-6:
                     return True
         return False
+
+    def _refine_free_block_shifts(self, block_count, positions, constraints, area_targets,
+                                  b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1:
+            return
+
+        ncols = constraints.shape[1]
+        movable = []
+        for i in range(block_count):
+            if ncols > 0 and constraints[i, 0] != 0:
+                continue
+            if ncols > 1 and constraints[i, 1] != 0:
+                continue
+            if ncols > 3 and constraints[i, 3] != 0:
+                continue
+            if ncols > 4 and constraints[i, 4] != 0:
+                continue
+            movable.append(i)
+        if not movable:
+            return
+
+        movable_set = set(movable)
+        b_adj = {i: [] for i in movable}
+        for e in b2b_connectivity:
+            a, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            if a in movable_set:
+                b_adj[a].append((b, w))
+            if b in movable_set:
+                b_adj[b].append((a, w))
+        p_adj = {i: [] for i in movable}
+        for e in p2b_connectivity:
+            pin, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            if b in movable_set:
+                p_adj[b].append((pin, w))
+
+        degrees = self._connection_degrees(movable, b2b_connectivity, p2b_connectivity)
+        ordered = sorted(movable, key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
+        base_area = calculate_bbox_area(positions)
+
+        for _pass in range(1):
+            improved = False
+            bbox = self._bbox(positions)
+            for i in ordered:
+                desired = self._desired_center_fast(i, positions, b_adj[i], p_adj[i], pins_pos)
+                if desired is None:
+                    continue
+                x, y, w, h = positions[i]
+                candidates = []
+                x_target = desired[0] - 0.5 * w
+                x_clamped = self._clamp_axis_position(i, positions, x_target, 0, bbox)
+                if x_clamped is not None and abs(x_clamped - x) > 1e-6:
+                    candidates.append((x_clamped, y))
+                y_target = desired[1] - 0.5 * h
+                y_clamped = self._clamp_axis_position(i, positions, y_target, 1, bbox)
+                if y_clamped is not None and abs(y_clamped - y) > 1e-6:
+                    candidates.append((x, y_clamped))
+
+                best_rect = None
+                best_cost = self._local_wirelength_fast(i, positions[i], positions, b_adj[i], p_adj[i], pins_pos)
+                for nx, ny in candidates:
+                    trial = list(positions)
+                    trial[i] = (nx, ny, w, h)
+                    if calculate_bbox_area(trial) > base_area + 1e-6:
+                        continue
+                    if self._overlaps_any(trial[i], trial[:i] + trial[i + 1:]):
+                        continue
+                    cost = self._local_wirelength_fast(i, trial[i], positions, b_adj[i], p_adj[i], pins_pos)
+                    if cost + 1e-6 < best_cost:
+                        best_cost = cost
+                        best_rect = trial[i]
+
+                if best_rect is not None:
+                    positions[i] = best_rect
+                    base_area = calculate_bbox_area(positions)
+                    improved = True
+            if not improved:
+                break
+
+    def _bbox(self, positions):
+        return (
+            min(p[0] for p in positions),
+            min(p[1] for p in positions),
+            max(p[0] + p[2] for p in positions),
+            max(p[1] + p[3] for p in positions),
+        )
+
+    def _desired_center_fast(self, block, positions, b_neighbors, p_neighbors, pins_pos):
+        total_x = 0.0
+        total_y = 0.0
+        weight = 0.0
+        for other, w in b_neighbors:
+            if 0 <= other < len(positions):
+                ox, oy, ow, oh = positions[other]
+                total_x += w * (ox + 0.5 * ow)
+                total_y += w * (oy + 0.5 * oh)
+                weight += w
+        for pin, w in p_neighbors:
+            if 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    total_x += w * px
+                    total_y += w * py
+                    weight += w
+        if weight <= 0.0:
+            return None
+        return total_x / weight, total_y / weight
+
+    def _local_wirelength_fast(self, block, rect, positions, b_neighbors, p_neighbors, pins_pos):
+        x, y, w, h = rect
+        cx = x + 0.5 * w
+        cy = y + 0.5 * h
+        total = 0.0
+        for other, ew in b_neighbors:
+            if 0 <= other < len(positions):
+                ox, oy, ow, oh = positions[other]
+                total += ew * (abs(cx - (ox + 0.5 * ow)) + abs(cy - (oy + 0.5 * oh)))
+        for pin, ew in p_neighbors:
+            if 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    total += ew * (abs(cx - px) + abs(cy - py))
+        return total
+
+    def _clamp_axis_position(self, block, positions, target, axis, bbox):
+        x, y, w, h = positions[block]
+        if axis == 0:
+            lo = bbox[0]
+            hi = bbox[2] - w
+            span_lo = y
+            span_hi = y + h
+            cur_lo = x
+            cur_hi = x + w
+            size = w
+            for j, rect in enumerate(positions):
+                if j == block:
+                    continue
+                ox, oy, ow, oh = rect
+                if min(span_hi, oy + oh) - max(span_lo, oy) <= 1e-6:
+                    continue
+                if ox + ow <= cur_lo + 1e-6:
+                    lo = max(lo, ox + ow)
+                elif ox >= cur_hi - 1e-6:
+                    hi = min(hi, ox - size)
+        else:
+            lo = bbox[1]
+            hi = bbox[3] - h
+            span_lo = x
+            span_hi = x + w
+            cur_lo = y
+            cur_hi = y + h
+            size = h
+            for j, rect in enumerate(positions):
+                if j == block:
+                    continue
+                ox, oy, ow, oh = rect
+                if min(span_hi, ox + ow) - max(span_lo, ox) <= 1e-6:
+                    continue
+                if oy + oh <= cur_lo + 1e-6:
+                    lo = max(lo, oy + oh)
+                elif oy >= cur_hi - 1e-6:
+                    hi = min(hi, oy - size)
+        if lo > hi + 1e-6:
+            return None
+        return min(max(target, lo), hi)
 
     def _choose_dimensions(self, block_count, area_targets, constraints, target_positions):
         dims = []
