@@ -153,6 +153,17 @@ def run_checks(
     if candidate_json is not None:
         baseline = compare_results.load_result(result_json)
         candidate = compare_results.load_result(candidate_json)
+        candidate_audit_ok, candidate_audit_errors, candidate_audit_warnings = audit_results.audit_result(
+            candidate,
+            expected_cases=expected_cases,
+            require_full_feasible=True,
+            max_score=max_score,
+            require_positions=require_positions,
+        )
+        messages.append(f"candidate_result_audit={'PASS' if candidate_audit_ok else 'FAIL'}")
+        messages.extend(f"  warning: {warning}" for warning in candidate_audit_warnings)
+        messages.extend(f"  error: {error}" for error in candidate_audit_errors)
+        ok = ok and candidate_audit_ok
         compare_ok, compare_messages = compare_results.compare(baseline, candidate)
         messages.append(f"candidate_compare={'PASS' if compare_ok else 'FAIL'}")
         messages.extend(f"  {message}" for message in compare_messages)

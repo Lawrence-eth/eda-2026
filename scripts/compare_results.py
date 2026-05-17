@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+FLOAT_TOLERANCE = 1e-6
+
 
 def _num(value: Any, default: float = 0.0) -> float:
     try:
@@ -51,6 +53,18 @@ def total_score(data: dict[str, Any]) -> float:
     if "total_score" not in data:
         raise SystemExit("Result JSON is missing total_score")
     return _num(data["total_score"])
+
+
+def reconstructed_total_score(data: dict[str, Any]) -> float:
+    """Reconstruct the evaluator's weighted score from per-case metrics."""
+
+    cases = data["test_results"]
+    if not cases:
+        return 0.0
+    max_blocks = max(int(_num(case.get("block_count"))) for case in cases)
+    raw_weights = [math.exp(int(_num(case.get("block_count"))) - max_blocks) for case in cases]
+    total_weight = sum(raw_weights) or 1.0
+    return sum(_num(case.get("cost")) * weight / total_weight for case, weight in zip(cases, raw_weights))
 
 
 def case_count(data: dict[str, Any]) -> int:
@@ -165,6 +179,8 @@ def compare(
 ) -> tuple[bool, list[str]]:
     baseline_score = total_score(baseline)
     candidate_score = total_score(candidate)
+    baseline_reconstructed = reconstructed_total_score(baseline)
+    candidate_reconstructed = reconstructed_total_score(candidate)
     baseline_cases = case_count(baseline)
     candidate_cases = case_count(candidate)
     required_cases = baseline_cases if min_cases is None else min_cases
@@ -176,13 +192,27 @@ def compare(
 
     messages = [
         f"baseline_score={baseline_score:.6f}",
+        f"baseline_reconstructed_score={baseline_reconstructed:.6f}",
         f"candidate_score={candidate_score:.6f}",
+        f"candidate_reconstructed_score={candidate_reconstructed:.6f}",
         f"delta={candidate_score - baseline_score:+.6f}",
         f"candidate_feasible={candidate_feasible}/{candidate_cases}",
         f"candidate_avg_runtime={avg_runtime(candidate):.4f}s",
     ]
 
     ok = True
+    if not math.isclose(baseline_score, baseline_reconstructed, rel_tol=0.0, abs_tol=FLOAT_TOLERANCE):
+        ok = False
+        messages.append(
+            f"FAIL: baseline total_score={baseline_score:.12f} does not match reconstructed score "
+            f"{baseline_reconstructed:.12f}"
+        )
+    if not math.isclose(candidate_score, candidate_reconstructed, rel_tol=0.0, abs_tol=FLOAT_TOLERANCE):
+        ok = False
+        messages.append(
+            f"FAIL: candidate total_score={candidate_score:.12f} does not match reconstructed score "
+            f"{candidate_reconstructed:.12f}"
+        )
     if candidate_cases < required_cases:
         ok = False
         messages.append(f"FAIL: candidate has {candidate_cases} cases, expected at least {required_cases}")

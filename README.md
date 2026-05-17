@@ -182,10 +182,12 @@ Use `scripts/compare_results.py` before publishing a solver update. It requires
 the candidate result to remain fully feasible according to per-case records,
 include every baseline `test_id`, avoid duplicate candidate IDs, include at
 least the baseline case count, and strictly lower `total_score` unless
-`--allow-equal` is used for a reproducibility check. It also reports the top
-weighted per-case regressions and improvements, including HPWL, area,
-soft-violation, and runtime deltas, so a candidate run can be debugged without
-manually diffing the full JSON.
+`--allow-equal` is used for a reproducibility check. It reconstructs both
+baseline and candidate weighted scores from the per-case costs before comparing
+them, so stale or hand-edited `total_score` fields fail before publication. It
+also reports the top weighted per-case regressions and improvements, including
+HPWL, area, soft-violation, and runtime deltas, so a candidate run can be
+debugged without manually diffing the full JSON.
 
 Use `scripts/audit_results.py` before replacing a published result artifact. It
 checks that result JSON files have unique case IDs, finite nonnegative metrics,
@@ -196,9 +198,10 @@ published summary averages when present, catching malformed, stale, or partial
 evaluator outputs before score comparison.
 
 Use `scripts/check_public_release.py` as the final local publication gate. It
-runs the result audit, scans public-facing docs for blocked process wording and
-sensitive terms, and can compare the public optimizer copy against an active
-contest checkout with `--contest-optimizer`.
+runs the result audit, audits any candidate result passed with `--candidate`,
+scans public-facing docs for blocked process wording and sensitive terms, and
+can compare the public optimizer copy against an active contest checkout with
+`--contest-optimizer`.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 

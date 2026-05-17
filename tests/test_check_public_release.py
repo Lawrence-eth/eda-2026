@@ -81,3 +81,54 @@ def test_run_checks_combines_audit_scan_and_sync(tmp_path, monkeypatch):
     assert "result_audit=PASS" in messages
     assert "public_safe_scan=PASS" in messages
     assert "optimizer_sync=PASS" in messages
+
+
+def test_run_checks_audits_candidate_before_compare(tmp_path, monkeypatch):
+    baseline = tmp_path / "baseline.json"
+    candidate = tmp_path / "candidate.json"
+    cases = [
+        {
+            "test_id": 0,
+            "block_count": 21,
+            "is_feasible": True,
+            "cost": 2.0,
+            "hpwl_gap": 0.5,
+            "area_gap": 0.4,
+            "violations_relative": 0.1,
+            "runtime_seconds": 0.02,
+            "error": None,
+            "positions": [[float(i), 0.0, 1.0, 1.0] for i in range(21)],
+        }
+    ]
+    baseline.write_text(
+        json.dumps(
+            {
+                "total_score": 2.0,
+                "summary": {"num_tests": 1, "num_feasible": 1, "avg_cost": 2.0, "avg_runtime": 0.02},
+                "test_results": cases,
+            }
+        ),
+        encoding="utf-8",
+    )
+    stale_candidate = json.loads(baseline.read_text(encoding="utf-8"))
+    stale_candidate["total_score"] = 1.5
+    candidate.write_text(json.dumps(stale_candidate), encoding="utf-8")
+    optimizer = tmp_path / "my_optimizer.py"
+    optimizer.write_text("x = 1\n", encoding="utf-8")
+    monkeypatch.setattr(check_public_release, "DEFAULT_SCAN_PATHS", (tmp_path,))
+
+    ok, messages = check_public_release.run_checks(
+        result_json=baseline,
+        expected_cases=1,
+        max_score=2.0,
+        require_positions=True,
+        public_optimizer=optimizer,
+        contest_optimizer=optimizer,
+        candidate_json=candidate,
+    )
+
+    joined = "\n".join(messages)
+    assert not ok
+    assert "candidate_result_audit=FAIL" in messages
+    assert "candidate_compare=FAIL" in messages
+    assert "reconstructed score" in joined

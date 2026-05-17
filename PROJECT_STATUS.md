@@ -29,10 +29,12 @@
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
 - Tightened `scripts/compare_results.py` so candidate feasibility is derived from per-case records and duplicate candidate `test_id` values fail before publication.
+- Tightened `scripts/compare_results.py` to reconstruct baseline and candidate total scores from per-case costs, preventing stale or hand-edited score fields from passing the publication guard.
 - Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, saved rectangle shape, and saved-rectangle overlap checks.
 - Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
 - Extended the result audit to reconstruct the block-count weighted total score and verify published summary averages against per-case metrics.
 - Added `scripts/check_public_release.py` as a combined publication gate for result auditing, public-facing documentation scan, candidate comparison, and optional optimizer-copy synchronization.
+- Extended the release check so candidate full-result JSON files are audited before candidate-vs-baseline comparison.
 - Added release-check regression tests covering public wording boundaries, optimizer synchronization, and combined gate behavior.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 - Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
@@ -134,8 +136,9 @@ need contest tensor inputs and still runs the diagnostics and comparison-guard
 tests. Use the contest environment for the full optimizer regression suite
 before publishing solver changes. The comparison guard requires candidate
 full-run JSON files to preserve per-case full feasibility, include every baseline
-`test_id`, avoid duplicate candidate IDs, and strictly improve the published
-total score before replacing best-result artifacts. The result audit should pass on any published full-run
+`test_id`, avoid duplicate candidate IDs, reconstruct to the declared score,
+and strictly improve the published total score before replacing best-result artifacts.
+The result audit should pass on any published full-run
 artifact before it is compared or copied over the current best result; it also
 checks saved rectangles for positive-area overlaps and verifies that top-level
 score and summary averages are consistent with the per-case metrics.

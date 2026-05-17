@@ -1,6 +1,15 @@
 import copy
+import math
 
 from scripts import compare_results
+
+
+def _reconstructed_score(data):
+    cases = data["test_results"]
+    max_blocks = max(case["block_count"] for case in cases)
+    weights = [math.exp(case["block_count"] - max_blocks) for case in cases]
+    total_weight = sum(weights)
+    return sum(case["cost"] * weight / total_weight for case, weight in zip(cases, weights))
 
 
 def _result(score=2.0, feasible=True, cases=2):
@@ -96,13 +105,36 @@ def test_compare_rejects_duplicate_candidate_test_ids():
     assert any("duplicate test_id values: 0" in message for message in messages)
 
 
+def test_compare_rejects_stale_candidate_total_score_even_when_declared_lower():
+    baseline = _result(score=2.0, cases=3)
+    candidate = copy.deepcopy(baseline)
+    candidate["total_score"] = 1.5
+    candidate["test_results"][2]["cost"] = 2.5
+
+    ok, messages = compare_results.compare(baseline, candidate)
+
+    assert not ok
+    assert any("candidate total_score" in message and "reconstructed score" in message for message in messages)
+
+
+def test_compare_rejects_stale_baseline_total_score():
+    baseline = _result(score=2.0, cases=3)
+    baseline["total_score"] = 2.5
+    candidate = _result(score=1.9, cases=3)
+
+    ok, messages = compare_results.compare(baseline, candidate)
+
+    assert not ok
+    assert any("baseline total_score" in message and "reconstructed score" in message for message in messages)
+
+
 def test_compare_reports_top_weighted_case_deltas():
     baseline = _result(score=2.0, cases=3)
     candidate = copy.deepcopy(baseline)
-    candidate["total_score"] = 1.8
     candidate["test_results"][0]["cost"] = 1.5
     candidate["test_results"][1]["cost"] = 2.5
     candidate["test_results"][2]["cost"] = 1.2
+    candidate["total_score"] = _reconstructed_score(candidate)
     candidate["test_results"][2]["hpwl_gap"] = 0.3
     baseline["test_results"][2]["hpwl_gap"] = 0.5
 
