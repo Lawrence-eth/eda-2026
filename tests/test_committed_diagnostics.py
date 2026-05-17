@@ -37,7 +37,7 @@ def test_enriched_diagnostics_preserve_score_and_add_soft_attribution():
 
     top_case = next(case for case in enriched["test_results"] if case["test_id"] == 99)
     assert top_case["boundary_violations"] == 2
-    assert top_case["grouping_violations"] == 3
+    assert top_case["grouping_violations"] == 2
     assert top_case["mib_violations"] == 0
     assert top_case["constraint_boundary_blocks"] == 36
     assert top_case["b2b_edges"] == 7056

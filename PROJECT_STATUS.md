@@ -58,7 +58,7 @@ The optimizer is a constructive heuristic:
 - preprocesses connectivity into lightweight tuples using vectorized tensor conversion on large cases;
 - skips unused selection-score evaluation when a block count has only one deterministic layout variant;
 - prunes high-block-count variant sets where the runtime cost outweighs placement-quality gains;
-- applies targeted row-width tuning on the highest-weight validation sizes, including the 111-, 112-, 113-, 114-, 115-, 116-, and 118-block cases;
+- applies targeted row-width tuning on the highest-weight validation sizes, including the 111-, 112-, 113-, 114-, 115-, 116-, 118-, and 120-block cases;
 - reuses cached connectivity degrees for cluster member ordering to reduce high-block-count runtime;
 - applies bounded post-placement translation of unconstrained cluster components when it removes a grouping split without overlaps or bbox expansion;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
@@ -68,13 +68,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 2.0133
-- Average cost: 3.7341
-- Average runtime: 1.5080s
+- Total score: 2.0094
+- Average cost: 3.7354
+- Average runtime: 1.4841s
 - Average HPWL gap: 1.5280
-- Average area gap: 1.4864
-- Average soft violation ratio: 0.1256
-- Worst per-case cost: 8.6772
+- Average area gap: 1.4883
+- Average soft violation ratio: 0.1254
+- Worst per-case cost: 8.6441
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -103,7 +103,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 366 total
+- grouping violations: 365 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.

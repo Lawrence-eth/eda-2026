@@ -2,23 +2,23 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 2.0133,
-    "average_cost": 3.7341,
-    "average_runtime_seconds": 1.5080,
+    "total_score": 2.0094,
+    "average_cost": 3.7354,
+    "average_runtime_seconds": 1.4841,
     "average_hpwl_gap": 1.5280,
-    "average_area_gap": 1.4864,
-    "average_soft_violation_ratio": 0.1256,
-    "worst_case_cost": 8.6772,
+    "average_area_gap": 1.4883,
+    "average_soft_violation_ratio": 0.1254,
+    "worst_case_cost": 8.6441,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
   "soft_violation_totals": {
     "boundary": 122,
-    "grouping": 366,
+    "grouping": 365,
     "mib": 55
   },
   "notes": [
     "Lower score is better under the contest cost function.",
-    "Bounded cluster-component translation reduces high-weight grouping penalties while preserving hard feasibility."
+    "High-count row-width tuning reduces the dominant weighted case while preserving hard feasibility."
   ]
 }
