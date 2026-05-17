@@ -44,6 +44,7 @@ results/
 scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
   analyze_results.py       Case-level diagnostics for full validation JSON outputs
+  compare_results.py       Publication guard for candidate result JSON files
 
 PROJECT_STATUS.md          Development status and reproducibility notes
 ```
@@ -132,10 +133,16 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 ```bash
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
-python -m pytest tests/test_analyze_results.py tests/test_optimizer_soft_constraints.py -q
+python scripts/compare_results.py results/boundary_full.json candidate_full.json
+python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tests/test_optimizer_soft_constraints.py -q
 ```
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
+
+Use `scripts/compare_results.py` before publishing a solver update. It requires
+the candidate result to remain fully feasible, include at least the baseline case
+count, and strictly lower `total_score` unless `--allow-equal` is used for a
+reproducibility check.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 

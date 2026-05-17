@@ -15,6 +15,7 @@
 - Added `scripts/analyze_results.py` for case-level score diagnostics, weighted-contribution analysis, and block-count range summaries.
 - Added optional official-evaluator enrichment to `scripts/analyze_results.py` so saved full results can show per-case boundary, grouping, and MIB violation counts without rerunning the optimizer.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
+- Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 
 ## Current Optimizer
@@ -52,7 +53,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 7 / 7 passed
+- Public regression tests: 12 / 12 passed
 - Official validator: PASSED
 
 Result file:
@@ -94,7 +95,8 @@ From the repository root:
 ```bash
 python scripts/analyze_results.py results/boundary_full.json
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
-python -m pytest tests/test_analyze_results.py tests/test_optimizer_soft_constraints.py -q
+python scripts/compare_results.py results/boundary_full.json candidate_full.json
+python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tests/test_optimizer_soft_constraints.py -q
 ```
 
 ## Next Improvement Ideas
@@ -103,3 +105,4 @@ python -m pytest tests/test_analyze_results.py tests/test_optimizer_soft_constra
 - Analytical placement or force-directed ordering before legalization.
 - More advanced MIB handling for groups with incompatible target areas.
 - Use the optimizer-helper regression tests as guardrails before changing boundary-cluster packing, grouping, or MIB heuristics.
+- Run the result-comparison guard before replacing published best-score artifacts.
