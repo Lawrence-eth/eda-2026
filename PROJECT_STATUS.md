@@ -16,6 +16,7 @@
 - Added optional official-evaluator enrichment to `scripts/analyze_results.py` so saved full results can show per-case boundary, grouping, and MIB violation counts without rerunning the optimizer.
 - Added an explicit `--write-enriched` mode to save those reconstructed soft-violation counts as a separate diagnostic JSON without replacing the published best-result artifact.
 - Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
+- Added score-concentration reporting to `scripts/analyze_results.py` so optimization cycles can see cumulative weight and score share for the top high-block-count cases.
 - Extended `scripts/analyze_results.py` with weighted metric-pressure estimates for HPWL, area, and soft-violation-ratio improvements, plus score-weighted soft-driver ranking when enriched counts are present.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added analyzer regression tests for metric-pressure and score-weighted soft-driver calculations.
@@ -125,6 +126,9 @@ best-result artifacts. The result audit should pass on any published full-run
 artifact before it is compared or copied over the current best result; it also
 checks saved rectangles for positive-area overlaps and verifies that top-level
 score and summary averages are consistent with the per-case metrics.
+The analyzer's score-concentration section should be checked before solver
+experiments so case-level tuning focuses on the cases that materially affect
+the block-count weighted score.
 The public release check combines the result audit with a public-facing docs
 scan and optional optimizer-copy synchronization, so a release can fail early if
 the uploaded optimizer diverges from the validated contest copy or the docs

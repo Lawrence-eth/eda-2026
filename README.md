@@ -155,6 +155,9 @@ The report prints the worst cases by raw cost, the worst weighted contributors t
 Small nonzero weighted contributions are printed in scientific notation, and
 the range summary includes reconstructed score contribution, score share,
 weight share, and the highest-impact case in each block-count range.
+The score-concentration section reports cumulative weight and score share for
+the top weighted cases, making it clear when a candidate should be judged
+primarily by the largest high-block-count instances rather than average cost.
 The analyzer also estimates reconstructed-score pressure from small HPWL,
 area, and soft-violation-ratio improvements, plus score-weighted soft-violation
 drivers when enriched boundary/grouping/MIB counts are available.

@@ -283,6 +283,49 @@ def print_aggregates(cases: list[dict[str, Any]]) -> None:
         )
 
 
+def score_concentration(cases: list[dict[str, Any]], cutoffs: Iterable[int] = (1, 3, 5, 10, 20)) -> list[dict[str, Any]]:
+    """Summarize how much total score is concentrated in the highest-weight cases."""
+
+    ordered = sorted(cases, key=lambda c: _num(c.get("_score_weight")), reverse=True)
+    total_weight = sum(_num(c.get("_score_weight")) for c in ordered) or 1.0
+    total_contribution = sum(_num(c.get("_weighted_contribution")) for c in ordered) or 1.0
+    rows = []
+    for cutoff in cutoffs:
+        if cutoff <= 0:
+            continue
+        selected = ordered[: min(cutoff, len(ordered))]
+        if not selected:
+            continue
+        rows.append(
+            {
+                "top_n": len(selected),
+                "test_ids": [case.get("test_id") for case in selected],
+                "weight_share": sum(_num(c.get("_score_weight")) for c in selected) / total_weight,
+                "score_share": sum(_num(c.get("_weighted_contribution")) for c in selected) / total_contribution,
+                "avg_cost": avg([_num(c.get("cost")) for c in selected]),
+                "avg_hpwl": avg([_num(c.get("hpwl_gap")) for c in selected]),
+                "avg_area": avg([_num(c.get("area_gap")) for c in selected]),
+                "avg_soft": avg([_num(c.get("violations_relative")) for c in selected]),
+            }
+        )
+    return rows
+
+
+def print_score_concentration(cases: list[dict[str, Any]]) -> None:
+    print("\n## Score concentration")
+    for row in score_concentration(cases):
+        ids = ",".join(str(test_id) for test_id in row["test_ids"])
+        print(
+            f"- top_{row['top_n']}: test_ids={ids}, "
+            f"weight_share={row['weight_share']:.2%}, "
+            f"score_share={row['score_share']:.2%}, "
+            f"avg_cost={row['avg_cost']:.4f}, "
+            f"avg_hpwl={row['avg_hpwl']:.4f}, "
+            f"avg_area={row['avg_area']:.4f}, "
+            f"avg_soft={row['avg_soft']:.4f}"
+        )
+
+
 def dominant_block_range(cases: list[dict[str, Any]]) -> tuple[str, float]:
     """Return the block-count range with the largest score contribution."""
 
@@ -490,6 +533,7 @@ def main() -> None:
     print_cases("Worst cases by raw cost", sorted(cases, key=lambda c: _num(c.get("cost")), reverse=True), args.top)
     print_cases("Worst cases by weighted contribution", sorted(cases, key=lambda c: _num(c.get("_weighted_contribution")), reverse=True), args.top)
     print_aggregates(cases)
+    print_score_concentration(cases)
     print_soft_totals(cases)
     print_metric_pressure(cases, min(args.top, 20))
     print("\n## Recommendation")

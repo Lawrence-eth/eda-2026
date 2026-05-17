@@ -88,6 +88,24 @@ def test_dominant_block_range_reflects_exponential_hidden_score_weighting():
     assert share > 0.999999
 
 
+def test_score_concentration_reports_top_weighted_cases():
+    cases = [
+        {"test_id": 1, "block_count": 118, "cost": 3.0, "hpwl_gap": 0.3, "area_gap": 0.4, "violations_relative": 0.1},
+        {"test_id": 2, "block_count": 119, "cost": 2.0, "hpwl_gap": 0.2, "area_gap": 0.3, "violations_relative": 0.2},
+        {"test_id": 3, "block_count": 120, "cost": 1.0, "hpwl_gap": 0.1, "area_gap": 0.2, "violations_relative": 0.3},
+    ]
+
+    analyze_results.add_weights(cases)
+    rows = analyze_results.score_concentration(cases, cutoffs=(1, 2))
+
+    assert rows[0]["top_n"] == 1
+    assert rows[0]["test_ids"] == [3]
+    assert math.isclose(rows[0]["avg_cost"], 1.0)
+    assert rows[1]["test_ids"] == [3, 2]
+    assert rows[1]["weight_share"] > rows[0]["weight_share"]
+    assert rows[1]["score_share"] > rows[0]["score_share"]
+
+
 def test_recommendation_uses_available_soft_violation_driver():
     cases = []
     for idx in range(3):
