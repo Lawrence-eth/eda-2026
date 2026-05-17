@@ -130,6 +130,12 @@ class MyOptimizer(FloorplanOptimizer):
             b2b_edges, p2b_edges, pins_pos, constraints
         )
 
+        if block_count >= 100:
+            self._refine_group_translations(
+                block_count, positions, constraints, area_targets,
+                b2b_edges, p2b_edges, pins_pos
+            )
+
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
             ordered = self._order_blocks(movable, area_targets, b2b_edges, p2b_edges)
@@ -501,6 +507,134 @@ class MyOptimizer(FloorplanOptimizer):
         if weight > 0.0:
             return (1, total / weight, min(ids))
         return (1, min(ids), min(ids))
+
+    def _refine_group_translations(self, block_count, positions, constraints, area_targets,
+                                   b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if constraints is None or constraints.dim() <= 1 or constraints.shape[1] <= 3:
+            return
+        if any(p is None for p in positions):
+            return
+
+        rects = positions  # all entries are filled at this point
+        base_soft = self._soft_violation_count(rects, constraints)
+        if base_soft <= 0:
+            return
+        base_area = calculate_bbox_area(rects)
+        max_gid = int(constraints[:block_count, 3].max().item())
+
+        for _pass in range(2):
+            improved = False
+            for gid in range(1, max_gid + 1):
+                group = [i for i in range(block_count) if int(constraints[i, 3].item()) == gid]
+                if len(group) < 2:
+                    continue
+                comps = self._group_component_lists(rects, group)
+                if len(comps) < 2:
+                    continue
+
+                candidates = []
+                for moving in comps:
+                    if not self._component_can_translate(moving, constraints):
+                        continue
+                    mb = self._component_bbox(rects, moving)
+                    avg_span = sum(rects[i][2] + rects[i][3] for i in moving) / max(1, 2 * len(moving))
+                    max_shift = max(8.0, avg_span * 1.5)
+                    for anchor in comps:
+                        if anchor is moving:
+                            continue
+                        ab = self._component_bbox(rects, anchor)
+                        y_overlap = min(mb[3], ab[3]) - max(mb[1], ab[1])
+                        if y_overlap > 1e-6:
+                            for dx in (ab[0] - mb[2], ab[2] - mb[0]):
+                                if 1e-6 < abs(dx) <= max_shift:
+                                    candidates.append((abs(dx), moving, dx, 0.0))
+                        x_overlap = min(mb[2], ab[2]) - max(mb[0], ab[0])
+                        if x_overlap > 1e-6:
+                            for dy in (ab[1] - mb[3], ab[3] - mb[1]):
+                                if 1e-6 < abs(dy) <= max_shift:
+                                    candidates.append((abs(dy), moving, 0.0, dy))
+
+                for _dist, moving, dx, dy in sorted(candidates, key=lambda c: c[0]):
+                    trial = list(rects)
+                    moving_set = set(moving)
+                    for i in moving:
+                        x, y, w, h = trial[i]
+                        trial[i] = (x + dx, y + dy, w, h)
+                    if calculate_bbox_area(trial) > base_area + 1e-6:
+                        continue
+                    if self._translated_component_overlaps(trial, moving_set):
+                        continue
+                    new_soft = self._soft_violation_count(trial, constraints)
+                    if new_soft < base_soft:
+                        for i in moving_set:
+                            positions[i] = trial[i]
+                        rects = positions
+                        base_soft = new_soft
+                        base_area = calculate_bbox_area(rects)
+                        improved = True
+                        break
+                if improved:
+                    break
+            if not improved:
+                break
+
+    def _component_can_translate(self, component, constraints):
+        for i in component:
+            if constraints.shape[1] > 0 and constraints[i, 0] != 0:
+                return False
+            if constraints.shape[1] > 1 and constraints[i, 1] != 0:
+                return False
+            if constraints.shape[1] > 4 and constraints[i, 4] != 0:
+                return False
+        return True
+
+    def _component_bbox(self, positions, component):
+        return (
+            min(positions[i][0] for i in component),
+            min(positions[i][1] for i in component),
+            max(positions[i][0] + positions[i][2] for i in component),
+            max(positions[i][1] + positions[i][3] for i in component),
+        )
+
+    def _group_component_lists(self, positions, group):
+        parent = {i: i for i in group}
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        def union(a, b):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[rb] = ra
+
+        for pos, i in enumerate(group):
+            x1, y1, w1, h1 = positions[i]
+            for j in group[pos + 1:]:
+                x2, y2, w2, h2 = positions[j]
+                y_overlap = min(y1 + h1, y2 + h2) - max(y1, y2)
+                x_overlap = min(x1 + w1, x2 + w2) - max(x1, x2)
+                touch_x = abs(x1 + w1 - x2) < 1e-6 or abs(x2 + w2 - x1) < 1e-6
+                touch_y = abs(y1 + h1 - y2) < 1e-6 or abs(y2 + h2 - y1) < 1e-6
+                if (touch_x and y_overlap > 1e-6) or (touch_y and x_overlap > 1e-6):
+                    union(i, j)
+        comps = {}
+        for i in group:
+            comps.setdefault(find(i), []).append(i)
+        return list(comps.values())
+
+    def _translated_component_overlaps(self, positions, moving_set):
+        moving = list(moving_set)
+        outsiders = [i for i in range(len(positions)) if i not in moving_set]
+        for i in moving:
+            x1, y1, w1, h1 = positions[i]
+            for j in outsiders:
+                x2, y2, w2, h2 = positions[j]
+                if min(x1 + w1, x2 + w2) - max(x1, x2) > 1e-6 and min(y1 + h1, y2 + h2) - max(y1, y2) > 1e-6:
+                    return True
+        return False
 
     def _choose_dimensions(self, block_count, area_targets, constraints, target_positions):
         dims = []
