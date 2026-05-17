@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""Audit FloorSet evaluator result JSON files before publication.
+
+This script checks structural and metric integrity that score comparison alone
+does not cover: duplicate case IDs, missing required fields, non-finite values,
+summary mismatches, infeasible cases, and malformed saved rectangles.
+
+Examples:
+    python scripts/audit_results.py results/boundary_full.json
+    python scripts/audit_results.py candidate_full.json --expected-cases 100 --max-score 2.0528
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from pathlib import Path
+from typing import Any
+
+REQUIRED_CASE_FIELDS = (
+    "test_id",
+    "block_count",
+    "is_feasible",
+    "cost",
+    "hpwl_gap",
+    "area_gap",
+    "violations_relative",
+    "runtime_seconds",
+)
+FINITE_NONNEGATIVE_FIELDS = (
+    "cost",
+    "hpwl_gap",
+    "area_gap",
+    "violations_relative",
+    "runtime_seconds",
+)
+
+
+def _num(value: Any, default: float = math.nan) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def load_result(path: Path) -> dict[str, Any]:
+    with path.open() as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise SystemExit(f"{path} does not contain a JSON object")
+    return data
+
+
+def _is_finite_nonnegative(value: Any) -> bool:
+    number = _num(value)
+    return math.isfinite(number) and number >= 0.0
+
+
+def _audit_positions(
+    case: dict[str, Any],
+    errors: list[str],
+    warnings: list[str],
+    *,
+    required: bool,
+) -> None:
+    test_id = case.get("test_id", "?")
+    block_count = int(_num(case.get("block_count"), -1))
+    positions = case.get("positions")
+    if positions is None:
+        message = f"case {test_id}: positions are absent; rerun evaluator with --save-solutions for deeper diagnostics"
+        if required:
+            errors.append(message)
+        else:
+            warnings.append(message)
+        return
+    if not isinstance(positions, list):
+        errors.append(f"case {test_id}: positions must be a list")
+        return
+    if block_count >= 0 and len(positions) != block_count:
+        errors.append(f"case {test_id}: positions length {len(positions)} does not match block_count {block_count}")
+    for idx, rect in enumerate(positions):
+        if not isinstance(rect, (list, tuple)) or len(rect) != 4:
+            errors.append(f"case {test_id}: position {idx} is not an [x, y, w, h] rectangle")
+            continue
+        values = [_num(v) for v in rect]
+        if not all(math.isfinite(v) for v in values):
+            errors.append(f"case {test_id}: position {idx} contains a non-finite value")
+        if values[2] <= 0.0 or values[3] <= 0.0:
+            errors.append(f"case {test_id}: position {idx} has non-positive width/height")
+
+
+def audit_result(
+    data: dict[str, Any],
+    *,
+    expected_cases: int | None = None,
+    require_full_feasible: bool = True,
+    max_score: float | None = None,
+    require_positions: bool = False,
+) -> tuple[bool, list[str], list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    total_score = _num(data.get("total_score"))
+    if "total_score" not in data or not math.isfinite(total_score) or total_score < 0.0:
+        errors.append("top-level total_score must be a finite nonnegative number")
+    elif max_score is not None and total_score > max_score:
+        errors.append(f"total_score {total_score:.6f} exceeds maximum allowed score {max_score:.6f}")
+
+    cases = data.get("test_results")
+    if not isinstance(cases, list) or not cases:
+        errors.append("top-level test_results must be a non-empty list")
+        return False, errors, warnings
+    if expected_cases is not None and len(cases) != expected_cases:
+        errors.append(f"test_results has {len(cases)} cases, expected {expected_cases}")
+
+    summary = data.get("summary")
+    if not isinstance(summary, dict):
+        warnings.append("top-level summary is absent or not an object")
+        summary = {}
+    summary_num_tests = summary.get("num_tests")
+    if summary_num_tests is not None and int(_num(summary_num_tests, -1)) != len(cases):
+        errors.append(f"summary.num_tests={summary_num_tests} does not match {len(cases)} cases")
+
+    seen_ids: set[int] = set()
+    feasible_count = 0
+    for idx, case in enumerate(cases):
+        if not isinstance(case, dict):
+            errors.append(f"case index {idx}: entry is not an object")
+            continue
+        for field in REQUIRED_CASE_FIELDS:
+            if field not in case:
+                errors.append(f"case index {idx}: missing required field {field}")
+        test_id = int(_num(case.get("test_id"), idx))
+        if test_id in seen_ids:
+            errors.append(f"duplicate test_id {test_id}")
+        seen_ids.add(test_id)
+        block_count = _num(case.get("block_count"))
+        if not math.isfinite(block_count) or block_count <= 0 or int(block_count) != block_count:
+            errors.append(f"case {test_id}: block_count must be a positive integer")
+        for field in FINITE_NONNEGATIVE_FIELDS:
+            if field in case and not _is_finite_nonnegative(case[field]):
+                errors.append(f"case {test_id}: {field} must be finite and nonnegative")
+        if case.get("error") not in (None, ""):
+            errors.append(f"case {test_id}: evaluator error is present: {case.get('error')}")
+        if case.get("is_feasible") is True:
+            feasible_count += 1
+        elif require_full_feasible:
+            errors.append(f"case {test_id}: is_feasible is not true")
+        if require_positions or "positions" in case:
+            _audit_positions(case, errors, warnings, required=require_positions)
+
+    summary_feasible = summary.get("num_feasible")
+    if summary_feasible is not None and int(_num(summary_feasible, -1)) != feasible_count:
+        errors.append(f"summary.num_feasible={summary_feasible} does not match {feasible_count} feasible cases")
+    if require_full_feasible and feasible_count != len(cases):
+        errors.append(f"result is not fully feasible: {feasible_count}/{len(cases)} cases feasible")
+
+    return not errors, errors, warnings
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("result_json", type=Path, help="Evaluator result JSON to audit")
+    parser.add_argument("--expected-cases", type=int, default=None, help="Require an exact number of cases")
+    parser.add_argument("--max-score", type=float, default=None, help="Fail if total_score exceeds this value")
+    parser.add_argument("--allow-infeasible", action="store_true", help="Do not require every case to be feasible")
+    parser.add_argument("--require-positions", action="store_true", help="Require saved [x, y, w, h] rectangles for every case")
+    args = parser.parse_args()
+
+    data = load_result(args.result_json)
+    ok, errors, warnings = audit_result(
+        data,
+        expected_cases=args.expected_cases,
+        require_full_feasible=not args.allow_infeasible,
+        max_score=args.max_score,
+        require_positions=args.require_positions,
+    )
+
+    print(f"Result audit: {args.result_json}")
+    print(f"Status: {'PASS' if ok else 'FAIL'}")
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
+    if errors:
+        print("Errors:")
+        for error in errors:
+            print(f"  - {error}")
+    sys.exit(0 if ok else 1)
+
+
+if __name__ == "__main__":
+    main()

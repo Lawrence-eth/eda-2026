@@ -1,0 +1,107 @@
+import copy
+
+from scripts import audit_results
+
+
+def _valid_result():
+    cases = []
+    for test_id, block_count in [(0, 21), (1, 22)]:
+        cases.append(
+            {
+                "test_id": test_id,
+                "block_count": block_count,
+                "is_feasible": True,
+                "cost": 2.0,
+                "hpwl_gap": 0.5,
+                "area_gap": 0.4,
+                "violations_relative": 0.1,
+                "runtime_seconds": 0.02,
+                "error": None,
+                "positions": [[float(i), 0.0, 1.0, 1.0] for i in range(block_count)],
+            }
+        )
+    return {
+        "total_score": 1.9,
+        "summary": {"num_tests": 2, "num_feasible": 2},
+        "test_results": cases,
+    }
+
+
+def test_audit_accepts_complete_fully_feasible_result():
+    ok, errors, warnings = audit_results.audit_result(_valid_result(), expected_cases=2, require_positions=True)
+
+    assert ok
+    assert errors == []
+    assert warnings == []
+
+
+def test_audit_rejects_duplicate_case_ids_and_summary_mismatch():
+    data = _valid_result()
+    data["test_results"][1]["test_id"] = 0
+    data["summary"]["num_tests"] = 3
+
+    ok, errors, _ = audit_results.audit_result(data, expected_cases=2)
+
+    assert not ok
+    assert any("duplicate test_id 0" in error for error in errors)
+    assert any("summary.num_tests=3" in error for error in errors)
+
+
+def test_audit_rejects_nonfinite_metric_and_bad_rectangle():
+    data = _valid_result()
+    data["test_results"][0]["cost"] = float("nan")
+    data["test_results"][0]["positions"][0][2] = 0.0
+
+    ok, errors, _ = audit_results.audit_result(data, require_positions=True)
+
+    assert not ok
+    assert any("cost must be finite" in error for error in errors)
+    assert any("non-positive width/height" in error for error in errors)
+
+
+def test_audit_warns_when_positions_absent_but_not_required():
+    data = _valid_result()
+    for case in data["test_results"]:
+        case.pop("positions")
+
+    ok, errors, warnings = audit_results.audit_result(data)
+
+    assert ok
+    assert errors == []
+    assert warnings == []
+
+
+def test_audit_rejects_missing_positions_when_required():
+    data = _valid_result()
+    data["test_results"][0].pop("positions")
+
+    ok, errors, warnings = audit_results.audit_result(data, require_positions=True)
+
+    assert not ok
+    assert any("positions are absent" in error for error in errors)
+    assert warnings == []
+
+
+def test_audit_enforces_full_feasibility_and_score_ceiling():
+    data = _valid_result()
+    data["total_score"] = 2.1
+    data["summary"]["num_feasible"] = 1
+    data["test_results"][1]["is_feasible"] = False
+
+    ok, errors, _ = audit_results.audit_result(data, max_score=2.0)
+
+    assert not ok
+    assert any("exceeds maximum allowed score" in error for error in errors)
+    assert any("is_feasible is not true" in error for error in errors)
+    assert any("not fully feasible" in error for error in errors)
+
+
+def test_audit_can_allow_infeasible_for_debug_artifacts():
+    data = _valid_result()
+    data["summary"]["num_feasible"] = 1
+    data["test_results"][1]["is_feasible"] = False
+
+    ok, errors, _ = audit_results.audit_result(copy.deepcopy(data), require_full_feasible=False)
+
+    assert ok
+    assert errors == []

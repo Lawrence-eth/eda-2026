@@ -20,6 +20,8 @@
 - Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
+- Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, and saved rectangle shape.
+- Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 - Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
 - Added repository pytest configuration so `pytest` and `python -m pytest` both resolve local `scripts` imports reliably.
@@ -59,7 +61,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 21 / 21 passed with contest dependencies; 15 passed / 2 skipped in a dependency-light Python environment
+- Public regression tests: 28 / 28 passed with contest dependencies
 - Official validator: PASSED
 
 Result file:
@@ -102,6 +104,7 @@ From the repository root:
 python scripts/analyze_results.py results/boundary_full.json
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest --write-enriched results/enriched_diagnostics.json
+python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python -m pytest -q
 ```
@@ -112,7 +115,8 @@ tests. Use the contest environment for the full optimizer regression suite
 before publishing solver changes. The comparison guard requires candidate
 full-run JSON files to preserve full feasibility, include every baseline
 `test_id`, and strictly improve the published total score before replacing
-best-result artifacts.
+best-result artifacts. The result audit should pass on any published full-run
+artifact before it is compared or copied over the current best result.
 
 ## Next Improvement Ideas
 
@@ -122,4 +126,5 @@ best-result artifacts.
 - Use the optimizer-helper regression tests as guardrails before changing boundary-cluster packing, grouping, or MIB heuristics.
 - Keep public smoke tests runnable with or without the official evaluator on `PYTHONPATH`.
 - Run the result-comparison guard before replacing published best-score artifacts.
+- Run the result-artifact audit before comparing or publishing candidate JSON files.
 - Inspect the weighted per-case delta report from `scripts/compare_results.py` before keeping or discarding a solver experiment.

@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 21 / 21 passed with contest dependencies; 15 passed / 2 skipped in a dependency-light Python environment
+- Public regression tests: 28 / 28 passed with contest dependencies
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -46,6 +46,7 @@ scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
   analyze_results.py       Case-level diagnostics for full validation JSON outputs
   compare_results.py       Publication guard and weighted-delta report for candidate result JSON files
+  audit_results.py         Result artifact integrity audit before publication
 
 PROJECT_STATUS.md          Development status and reproducibility notes
 ```
@@ -138,6 +139,7 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 ```bash
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
+python scripts/audit_results.py results/boundary_full.json --expected-cases 100 --require-positions
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
 python -m pytest -q
 ```
@@ -162,6 +164,12 @@ include at least the baseline case count, and strictly lower `total_score` unles
 weighted per-case regressions and improvements, including HPWL, area,
 soft-violation, and runtime deltas, so a candidate run can be debugged without
 manually diffing the full JSON.
+
+Use `scripts/audit_results.py` before replacing a published result artifact. It
+checks that result JSON files have unique case IDs, finite nonnegative metrics,
+summary counts that match the case list, full feasibility by default, and valid
+saved `[x, y, w, h]` rectangles when `--require-positions` is enabled. This
+guard catches malformed or partial evaluator outputs before score comparison.
 
 When an official FloorSet checkout with validation data is available, the analyzer can also reconstruct per-case boundary, grouping, and MIB violation counts from the saved positions:
 
