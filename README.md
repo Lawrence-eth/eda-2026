@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 18 / 18 passed with contest dependencies; 12 passed / 2 skipped in a dependency-light Python environment
+- Public regression tests: 21 / 21 passed with contest dependencies; 15 passed / 2 skipped in a dependency-light Python environment
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -151,6 +151,9 @@ The report prints the worst cases by raw cost, the worst weighted contributors t
 Small nonzero weighted contributions are printed in scientific notation, and
 the range summary includes reconstructed score contribution, score share,
 weight share, and the highest-impact case in each block-count range.
+The test harness keeps repository-local scripts importable under both
+`pytest` and `python -m pytest` so diagnostics can be checked consistently
+across local shells and CI.
 
 Use `scripts/compare_results.py` before publishing a solver update. It requires
 the candidate result to remain fully feasible, include every baseline `test_id`,

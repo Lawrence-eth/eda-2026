@@ -17,10 +17,12 @@
 - Added an explicit `--write-enriched` mode to save those reconstructed soft-violation counts as a separate diagnostic JSON without replacing the published best-result artifact.
 - Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
+- Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.
 - Made Torch-dependent public optimizer tests skip cleanly when contest dependencies are absent, so diagnostics and publication-guard tests remain runnable in a plain Python environment.
+- Added repository pytest configuration so `pytest` and `python -m pytest` both resolve local `scripts` imports reliably.
 
 ## Current Optimizer
 
@@ -57,7 +59,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 18 / 18 passed with contest dependencies; 12 passed / 2 skipped in a dependency-light Python environment
+- Public regression tests: 21 / 21 passed with contest dependencies; 15 passed / 2 skipped in a dependency-light Python environment
 - Official validator: PASSED
 
 Result file:

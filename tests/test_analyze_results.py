@@ -75,6 +75,19 @@ def test_dominant_block_range_uses_reconstructed_score_contribution():
     assert math.isclose(share, 1.7 / 2.0)
 
 
+def test_dominant_block_range_reflects_exponential_hidden_score_weighting():
+    cases = [
+        {"test_id": 1, "block_count": 99, "cost": 9.0},
+        {"test_id": 2, "block_count": 120, "cost": 2.0},
+    ]
+
+    analyze_results.add_weights(cases)
+    label, share = analyze_results.dominant_block_range(cases)
+
+    assert label == "101-120"
+    assert share > 0.999999
+
+
 def test_recommendation_uses_available_soft_violation_driver():
     cases = []
     for idx in range(3):
