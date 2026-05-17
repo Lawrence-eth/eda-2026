@@ -2,23 +2,23 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 2.8463,
-    "average_cost": 3.759,
-    "average_runtime_seconds": 0.5149,
-    "average_hpwl_gap": 1.6107,
-    "average_area_gap": 1.5386,
-    "average_soft_violation_ratio": 0.1384,
-    "worst_case_cost": 9.0629,
+    "total_score": 2.5683,
+    "average_cost": 3.8134,
+    "average_runtime_seconds": 0.5128,
+    "average_hpwl_gap": 1.6075,
+    "average_area_gap": 1.5367,
+    "average_soft_violation_ratio": 0.1388,
+    "worst_case_cost": 9.3588,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
   "soft_violation_totals": {
     "boundary": 122,
-    "grouping": 430,
+    "grouping": 432,
     "mib": 55
   },
   "notes": [
     "Lower score is better under the contest cost function.",
-    "Large-case row-width tuning improves weighted validation score while preserving hard feasibility."
+    "High-block-count row-width tuning improves weighted validation score while preserving hard feasibility."
   ]
 }

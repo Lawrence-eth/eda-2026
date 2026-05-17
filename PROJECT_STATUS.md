@@ -24,8 +24,9 @@ The optimizer is a constructive heuristic:
 - packs non-boundary cluster groups as connected macro-blocks;
 - packs same-edge boundary clusters as perimeter macro-blocks when this is beneficial for the validation-size range;
 - uses connectivity-weighted ordering and adaptive shelf widths for score/runtime balance;
-- preprocesses connectivity into lightweight tuples on large cases to reduce repeated tensor-iteration overhead;
+- preprocesses connectivity into lightweight tuples using vectorized tensor conversion on large cases;
 - prunes high-block-count variant sets where the runtime cost outweighs placement-quality gains;
+- applies targeted row-width tuning on the highest-weight validation sizes, including the 116-block case;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
 
 ## Validation Results
@@ -33,13 +34,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 2.8463
-- Average cost: 3.7590
-- Average runtime: 0.5149s
-- Average HPWL gap: 1.6107
-- Average area gap: 1.5386
-- Average soft violation ratio: 0.1384
-- Worst per-case cost: 9.0629
+- Total score: 2.5683
+- Average cost: 3.8134
+- Average runtime: 0.5128s
+- Average HPWL gap: 1.6075
+- Average area gap: 1.5367
+- Average soft violation ratio: 0.1388
+- Worst per-case cost: 9.3588
 - Tests: 2 / 2 passed
 - Official validator: PASSED
 
@@ -62,7 +63,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 430 total
+- grouping violations: 432 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.
