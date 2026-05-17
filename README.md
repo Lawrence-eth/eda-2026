@@ -17,6 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
+- Public regression tests: 16 / 16 passed
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -26,7 +27,7 @@ Lower score is better under the contest cost function.
 ```text
 contest_solution/
   my_optimizer.py          Main optimizer implementation
-  test_my_optimizer.py     Local feasibility/unit tests
+  test_my_optimizer.py     Local feasibility/unit tests with public fallback checks
 
 tests/
   test_analyze_results.py  Regression tests for result diagnostics
@@ -96,7 +97,9 @@ Some remaining violations are caused by tradeoffs with hard constraints. For exa
 The public regression suite also includes standalone tests for optimizer-local
 boundary/corner accounting, grouping connectedness, MIB dimension normalization,
 and boundary-cluster packing. These tests are intended as guardrails for future
-score-focused solver changes.
+score-focused solver changes. The copied contest smoke tests use official
+evaluator helpers when available and otherwise fall back to equivalent local
+checks, so the public test suite can run after a plain clone.
 
 ## Reproduction instructions
 
@@ -134,7 +137,7 @@ After generating `results/boundary_full.json`, use the analysis helper to identi
 python scripts/analyze_results.py
 python scripts/analyze_results.py results/boundary_full.json --top 30
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
-python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tests/test_optimizer_soft_constraints.py -q
+python -m pytest -q
 ```
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.

@@ -54,7 +54,7 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 12 / 12 passed
+- Public regression tests: 16 / 16 passed
 - Official validator: PASSED
 
 Result file:
@@ -97,7 +97,7 @@ From the repository root:
 python scripts/analyze_results.py results/boundary_full.json
 python scripts/analyze_results.py results/boundary_full.json --contest-dir external/FloorSet/iccad2026contest
 python scripts/compare_results.py results/boundary_full.json candidate_full.json
-python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tests/test_optimizer_soft_constraints.py -q
+python -m pytest -q
 ```
 
 ## Next Improvement Ideas
@@ -106,4 +106,5 @@ python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tes
 - Analytical placement or force-directed ordering before legalization.
 - More advanced MIB handling for groups with incompatible target areas.
 - Use the optimizer-helper regression tests as guardrails before changing boundary-cluster packing, grouping, or MIB heuristics.
+- Keep public smoke tests runnable with or without the official evaluator on `PYTHONPATH`.
 - Run the result-comparison guard before replacing published best-score artifacts.
