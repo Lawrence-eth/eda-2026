@@ -20,6 +20,8 @@
 - Extended `scripts/analyze_results.py` with weighted metric-pressure estimates for HPWL, area, and soft-violation-ratio improvements, plus score-weighted soft-driver ranking when enriched counts are present.
 - Extended `scripts/analyze_results.py` with optional structural case profiles from the official checkout, including fixed/preplaced block counts, boundary demand, cluster and MIB group pressure, and B2B/P2B net counts for weighted focus cases.
 - Added `--write-focus-json` to `scripts/analyze_results.py` so high-impact weighted cases, score concentration, metric pressure, and the recommendation can be saved as a compact planning artifact without replacing the published best-result JSON.
+- Added committed diagnostic artifacts for the current best result: `results/enriched_diagnostics.json` with reconstructed soft-violation attribution and `results/focus_cases.json` with compact weighted-case planning data.
+- Added regression tests that keep committed diagnostic artifacts aligned with the published best result and prevent focus reports from carrying full saved positions.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added analyzer regression tests for metric-pressure and score-weighted soft-driver calculations.
 - Added analyzer regression tests for structural constraint-profile extraction and reporting.
@@ -71,12 +73,17 @@ Final local validation over 100 Lite validation cases:
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Tests: 2 / 2 passed
-- Public regression tests: 37 / 37 passed in the dependency-light suite
+- Public regression tests: 41 / 41 passed in the dependency-light suite
 - Official validator: PASSED
 
 Result file:
 
 - `results/boundary_full.json`
+
+Diagnostic companion files:
+
+- `results/enriched_diagnostics.json`
+- `results/focus_cases.json`
 
 ## Implementation Notes
 

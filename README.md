@@ -17,7 +17,7 @@ Validation set: LiteTensorDataTest, 100 cases.
 - Average soft violation ratio: 0.1261
 - Worst per-case cost: 8.6318
 - Unit tests: 2 / 2 passed
-- Public regression tests: 37 / 37 passed in the dependency-light suite
+- Public regression tests: 41 / 41 passed in the dependency-light suite
 - Official validator: PASSED
 
 Lower score is better under the contest cost function.
@@ -41,6 +41,8 @@ docs/extracted/
 results/
   summary.json             Compact result summary
   boundary_full.json        Full local evaluation JSON output
+  enriched_diagnostics.json Full diagnostic copy with reconstructed soft-violation attribution
+  focus_cases.json          Compact weighted-case and sensitivity planning report
 
 scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
@@ -164,8 +166,10 @@ area, and soft-violation-ratio improvements, plus score-weighted soft-violation
 drivers when enriched boundary/grouping/MIB counts are available.
 Use `--write-focus-json` to save a compact planning artifact with the dominant
 score range, score concentration, metric-pressure estimates, recommendation,
-top weighted cases, and top local-sensitivity cases. This artifact is intended
-for experiment planning and does not replace the published best-result JSON.
+top weighted cases, and top local-sensitivity cases. The committed
+`results/focus_cases.json` tracks the current published best result and is
+intended for experiment planning; it does not replace the published
+best-result JSON.
 The test harness keeps repository-local scripts importable under both
 `pytest` and `python -m pytest` so diagnostics can be checked consistently
 across local shells and CI.
@@ -213,6 +217,10 @@ python scripts/analyze_results.py results/boundary_full.json \
   --contest-dir external/FloorSet/iccad2026contest \
   --write-enriched results/enriched_diagnostics.json
 ```
+
+The committed `results/enriched_diagnostics.json` preserves the published
+score and summary while adding per-case boundary, grouping, MIB, and structural
+constraint fields for diagnostics.
 
 ## Next improvement directions
 
