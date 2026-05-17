@@ -22,7 +22,7 @@
 - Added a regression test that locks down the exponential high-block-count weighting used by the analyzer.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Extended `scripts/compare_results.py` with top weighted per-case regression and improvement reporting for candidate-vs-baseline debugging.
-- Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, and saved rectangle shape.
+- Added `scripts/audit_results.py` to validate result artifact integrity, including duplicate IDs, missing fields, finite metric values, summary consistency, feasibility, saved rectangle shape, and saved-rectangle overlap checks.
 - Added result-audit regression tests so malformed or partial evaluator JSON files fail before publication.
 - Extended the result audit to reconstruct the block-count weighted total score and verify published summary averages against per-case metrics.
 - Added `scripts/check_public_release.py` as a combined publication gate for result auditing, public-facing documentation scan, candidate comparison, and optional optimizer-copy synchronization.
@@ -123,8 +123,8 @@ full-run JSON files to preserve full feasibility, include every baseline
 `test_id`, and strictly improve the published total score before replacing
 best-result artifacts. The result audit should pass on any published full-run
 artifact before it is compared or copied over the current best result; it also
-checks that top-level score and summary averages are consistent with the
-per-case metrics.
+checks saved rectangles for positive-area overlaps and verifies that top-level
+score and summary averages are consistent with the per-case metrics.
 The public release check combines the result audit with a public-facing docs
 scan and optional optimizer-copy synchronization, so a release can fail early if
 the uploaded optimizer diverges from the validated contest copy or the docs

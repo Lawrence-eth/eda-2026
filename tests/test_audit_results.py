@@ -70,6 +70,16 @@ def test_audit_rejects_nonfinite_metric_and_bad_rectangle():
     assert any("non-positive width/height" in error for error in errors)
 
 
+def test_audit_rejects_overlapping_saved_rectangles():
+    data = _valid_result()
+    data["test_results"][0]["positions"][1] = [0.5, 0.0, 1.0, 1.0]
+
+    ok, errors, _ = audit_results.audit_result(data, require_positions=True)
+
+    assert not ok
+    assert any("positions 0 and 1 overlap" in error for error in errors)
+
+
 def test_audit_warns_when_positions_absent_but_not_required():
     data = _valid_result()
     for case in data["test_results"]:

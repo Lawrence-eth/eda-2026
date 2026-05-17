@@ -40,6 +40,7 @@ SUMMARY_AVERAGE_FIELDS = {
     "avg_runtime": "runtime_seconds",
 }
 FLOAT_TOLERANCE = 1e-6
+GEOMETRY_TOLERANCE = 1e-6
 
 
 def _num(value: Any, default: float = math.nan) -> float:
@@ -100,6 +101,7 @@ def _audit_positions(
         return
     if block_count >= 0 and len(positions) != block_count:
         errors.append(f"case {test_id}: positions length {len(positions)} does not match block_count {block_count}")
+    valid_rects: list[tuple[int, float, float, float, float]] = []
     for idx, rect in enumerate(positions):
         if not isinstance(rect, (list, tuple)) or len(rect) != 4:
             errors.append(f"case {test_id}: position {idx} is not an [x, y, w, h] rectangle")
@@ -107,8 +109,20 @@ def _audit_positions(
         values = [_num(v) for v in rect]
         if not all(math.isfinite(v) for v in values):
             errors.append(f"case {test_id}: position {idx} contains a non-finite value")
+            continue
         if values[2] <= 0.0 or values[3] <= 0.0:
             errors.append(f"case {test_id}: position {idx} has non-positive width/height")
+            continue
+        valid_rects.append((idx, values[0], values[1], values[2], values[3]))
+    for left_pos, (left_idx, x1, y1, w1, h1) in enumerate(valid_rects):
+        for right_idx, x2, y2, w2, h2 in valid_rects[left_pos + 1:]:
+            x_overlap = min(x1 + w1, x2 + w2) - max(x1, x2)
+            y_overlap = min(y1 + h1, y2 + h2) - max(y1, y2)
+            if x_overlap > GEOMETRY_TOLERANCE and y_overlap > GEOMETRY_TOLERANCE:
+                errors.append(
+                    f"case {test_id}: positions {left_idx} and {right_idx} overlap "
+                    f"by {x_overlap:.6g} x {y_overlap:.6g}"
+                )
 
 
 def audit_result(

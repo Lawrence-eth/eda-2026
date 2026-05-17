@@ -46,7 +46,7 @@ scripts/
   setup_and_evaluate.sh    Helper script for reproducing evaluation after cloning FloorSet
   analyze_results.py       Case-level diagnostics for full validation JSON outputs
   compare_results.py       Publication guard and weighted-delta report for candidate result JSON files
-  audit_results.py         Result artifact integrity and score-consistency audit before publication
+  audit_results.py         Result artifact geometry, integrity, and score-consistency audit before publication
   check_public_release.py  Combined release guard for result audit, docs scan, and optimizer sync
 
 PROJECT_STATUS.md          Development status and reproducibility notes
@@ -173,7 +173,7 @@ manually diffing the full JSON.
 Use `scripts/audit_results.py` before replacing a published result artifact. It
 checks that result JSON files have unique case IDs, finite nonnegative metrics,
 summary counts that match the case list, full feasibility by default, and valid
-saved `[x, y, w, h]` rectangles when `--require-positions` is enabled. This
+saved non-overlapping `[x, y, w, h]` rectangles when positions are present. This
 guard also reconstructs the block-count weighted total score and verifies
 published summary averages when present, catching malformed, stale, or partial
 evaluator outputs before score comparison.

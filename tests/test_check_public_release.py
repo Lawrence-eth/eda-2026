@@ -50,7 +50,7 @@ def test_run_checks_combines_audit_scan_and_sync(tmp_path, monkeypatch):
             "violations_relative": 0.1,
             "runtime_seconds": 0.02,
             "error": None,
-            "positions": [[0.0, 0.0, 1.0, 1.0] for _ in range(21)],
+            "positions": [[float(i), 0.0, 1.0, 1.0] for i in range(21)],
         }
     ]
     result.write_text(
