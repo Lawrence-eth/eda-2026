@@ -138,6 +138,9 @@ python -m pytest tests/test_analyze_results.py tests/test_compare_results.py tes
 ```
 
 The report prints the worst cases by raw cost, the worst weighted contributors to the total score, aggregate metrics by block-count range, and a recommended next target such as HPWL, area, grouping, boundary, MIB, runtime, tests, or documentation.
+Small nonzero weighted contributions are printed in scientific notation, and
+the range summary includes reconstructed score contribution, score share,
+weight share, and the highest-impact case in each block-count range.
 
 Use `scripts/compare_results.py` before publishing a solver update. It requires
 the candidate result to remain fully feasible, include at least the baseline case

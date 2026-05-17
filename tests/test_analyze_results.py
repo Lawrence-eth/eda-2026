@@ -44,6 +44,36 @@ def test_fmt_case_includes_soft_violation_attribution_when_present():
     assert "soft_count=6/20" in formatted
 
 
+def test_fmt_case_keeps_tiny_weighted_contribution_visible():
+    case = {
+        "test_id": 1,
+        "block_count": 21,
+        "cost": 1.0,
+        "_weighted_contribution": 2.5e-9,
+        "hpwl_gap": 0.0,
+        "area_gap": 0.0,
+        "violations_relative": 0.0,
+        "runtime_seconds": 0.1,
+    }
+
+    formatted = analyze_results.fmt_case(case)
+
+    assert "weighted=2.500e-09" in formatted
+
+
+def test_dominant_block_range_uses_reconstructed_score_contribution():
+    cases = [
+        {"block_count": 21, "_weighted_contribution": 0.1},
+        {"block_count": 42, "_weighted_contribution": 0.2},
+        {"block_count": 119, "_weighted_contribution": 1.7},
+    ]
+
+    label, share = analyze_results.dominant_block_range(cases)
+
+    assert label == "101-120"
+    assert math.isclose(share, 1.7 / 2.0)
+
+
 def test_recommendation_uses_available_soft_violation_driver():
     cases = []
     for idx in range(3):
@@ -67,3 +97,4 @@ def test_recommendation_uses_available_soft_violation_driver():
 
     assert "soft constraints" in recommendation
     assert "grouping" in recommendation
+    assert "Dominant score range" in recommendation

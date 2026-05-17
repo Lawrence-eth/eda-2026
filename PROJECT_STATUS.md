@@ -14,6 +14,7 @@
 - Published local validation artifacts in `results/`.
 - Added `scripts/analyze_results.py` for case-level score diagnostics, weighted-contribution analysis, and block-count range summaries.
 - Added optional official-evaluator enrichment to `scripts/analyze_results.py` so saved full results can show per-case boundary, grouping, and MIB violation counts without rerunning the optimizer.
+- Improved `scripts/analyze_results.py` to keep tiny weighted contributions visible and report reconstructed score share, weight share, and top weighted case by block-count range.
 - Added analyzer regression tests covering weighted-score reconstruction and soft-violation reporting.
 - Added `scripts/compare_results.py` as a publication guard for candidate full-run JSON files, including score, feasibility, and case-count checks.
 - Added standalone optimizer-helper regression tests for boundary/corner accounting, grouping connectedness, MIB dimension normalization, and boundary-cluster local packing.

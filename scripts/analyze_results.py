@@ -175,12 +175,20 @@ def add_weights(cases: list[dict[str, Any]]) -> None:
         case["_weighted_contribution"] = _num(case.get("cost")) * norm
 
 
+def fmt_weighted(value: float) -> str:
+    """Print score contributions without rounding small cases to zero."""
+
+    if abs(value) < 0.0001 and value != 0.0:
+        return f"{value:.3e}"
+    return f"{value:.6f}"
+
+
 def fmt_case(case: dict[str, Any]) -> str:
     return (
         f"test_id={case.get('test_id'):>3} "
         f"blocks={case.get('block_count'):>3} "
         f"cost={_num(case.get('cost')):7.4f} "
-        f"weighted={case.get('_weighted_contribution', 0.0):9.6f} "
+        f"weighted={fmt_weighted(_num(case.get('_weighted_contribution'))):>9} "
         f"hpwl={_num(case.get('hpwl_gap')):7.4f} "
         f"area={_num(case.get('area_gap')):7.4f} "
         f"soft={_num(case.get('violations_relative')):7.4f} "
@@ -216,6 +224,8 @@ def print_aggregates(cases: list[dict[str, Any]]) -> None:
         buckets[range_label(int(_num(case.get("block_count"))))].append(case)
 
     print("\n## Aggregate averages by block-count range")
+    total_contribution = sum(_num(c.get("_weighted_contribution")) for c in cases) or 1.0
+    total_weight = sum(_num(c.get("_score_weight")) for c in cases) or 1.0
     for lo, hi in RANGES:
         label = f"{lo}-{hi}"
         group = buckets.get(label, [])
@@ -223,15 +233,34 @@ def print_aggregates(cases: list[dict[str, Any]]) -> None:
             print(f"- {label}: no cases")
             continue
         feasible = sum(1 for c in group if c.get("is_feasible"))
+        score_contribution = sum(_num(c.get("_weighted_contribution")) for c in group)
+        weight_share = sum(_num(c.get("_score_weight")) for c in group) / total_weight
+        score_share = score_contribution / total_contribution
+        worst_weighted = max(group, key=lambda c: _num(c.get("_weighted_contribution")))
         print(
             f"- {label}: cases={len(group)}, feasible={feasible}/{len(group)}, "
             f"avg_cost={avg([_num(c.get('cost')) for c in group]):.4f}, "
-            f"avg_weighted={sum(_num(c.get('_weighted_contribution')) for c in group):.6f}, "
+            f"score_contribution={fmt_weighted(score_contribution)}, "
+            f"score_share={score_share:.2%}, weight_share={weight_share:.2%}, "
+            f"top_weighted_case={worst_weighted.get('test_id')}, "
             f"avg_hpwl={avg([_num(c.get('hpwl_gap')) for c in group]):.4f}, "
             f"avg_area={avg([_num(c.get('area_gap')) for c in group]):.4f}, "
             f"avg_soft={avg([_num(c.get('violations_relative')) for c in group]):.4f}, "
             f"avg_runtime={avg([_num(c.get('runtime_seconds')) for c in group]):.3f}s"
         )
+
+
+def dominant_block_range(cases: list[dict[str, Any]]) -> tuple[str, float]:
+    """Return the block-count range with the largest score contribution."""
+
+    if not cases:
+        return ("none", 0.0)
+    totals: dict[str, float] = defaultdict(float)
+    for case in cases:
+        totals[range_label(int(_num(case.get("block_count"))))] += _num(case.get("_weighted_contribution"))
+    label, contribution = max(totals.items(), key=lambda item: item[1])
+    total = sum(totals.values()) or 1.0
+    return label, contribution / total
 
 
 def print_soft_totals(cases: list[dict[str, Any]]) -> None:
@@ -279,9 +308,12 @@ def recommendation(cases: list[dict[str, Any]]) -> str:
 
     if runtime > 5.0:
         primary += "; also watch runtime on the largest cases"
+    range_name, range_share = dominant_block_range(cases)
     return (
         f"Weighted worst-case averages: hpwl={hpwl:.4f}, area={area:.4f}, "
-        f"soft={soft:.4f}, runtime={runtime:.3f}s. Suggested next target: {primary}."
+        f"soft={soft:.4f}, runtime={runtime:.3f}s. Dominant score range: "
+        f"{range_name} ({range_share:.2%} of reconstructed score). "
+        f"Suggested next target: {primary}."
     )
 
 
