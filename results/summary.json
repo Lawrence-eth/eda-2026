@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.9422,
-    "average_cost": 3.7229,
-    "average_runtime_seconds": 1.5454,
-    "average_hpwl_gap": 1.5251,
+    "total_score": 1.9362,
+    "average_cost": 3.7355,
+    "average_runtime_seconds": 1.5186,
+    "average_hpwl_gap": 1.5248,
     "average_area_gap": 1.4859,
     "average_soft_violation_ratio": 0.1254,
-    "worst_case_cost": 8.6179,
+    "worst_case_cost": 8.6694,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -21,6 +21,7 @@
     "Lower score is better under the contest cost function.",
     "A selective second interior shift pass on 117- and 119-block cases reduces high-count HPWL while preserving hard feasibility.",
     "Fixed-shape, non-preplaced interior blocks may participate in the guarded shift pass on 117- through 119-block cases, preserving dimensions while reducing high-count HPWL.",
+    "The 116- through 119-block shift pass also tests a guarded combined-axis move after independent axis clamps, accepting only overlap-free incident-wirelength improvements inside the existing bounding box.",
     "A trimmed 120-block interior shift pass targets only the highest-connectivity free blocks to reduce incident wirelength without losing the runtime cap.",
     "A guarded 120-block top-edge boundary compaction lowers the dominant weighted case area and HPWL without increasing soft violations."
   ]

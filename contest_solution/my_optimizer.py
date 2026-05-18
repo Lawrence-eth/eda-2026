@@ -703,6 +703,9 @@ class MyOptimizer(FloorplanOptimizer):
                 y_clamped = self._clamp_axis_position(i, positions, y_target, 1, bbox)
                 if y_clamped is not None and abs(y_clamped - y) > 1e-6:
                     candidates.append((x, y_clamped))
+                if (block_count < 120 and x_clamped is not None and y_clamped is not None and
+                        (abs(x_clamped - x) > 1e-6 or abs(y_clamped - y) > 1e-6)):
+                    candidates.append((x_clamped, y_clamped))
 
                 best_rect = None
                 best_cost = self._local_wirelength_fast(i, positions[i], positions, b_adj[i], p_adj[i], pins_pos)

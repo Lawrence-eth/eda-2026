@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.9422
-- Average cost: 3.7229
-- Average runtime: 1.5454 seconds
-- Average HPWL gap: 1.5251
+- Total score: 1.9362
+- Average cost: 3.7355
+- Average runtime: 1.5186 seconds
+- Average HPWL gap: 1.5248
 - Average area gap: 1.4859
 - Average soft violation ratio: 0.1254
-- Worst per-case cost: 8.6179
+- Worst per-case cost: 8.6694
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -80,6 +80,7 @@ Main components:
 - bounded post-placement translation of unconstrained cluster components to remove grouping splits without overlaps or bbox expansion;
 - bounded post-placement shifts of unconstrained interior blocks on selected high-count cases to reduce incident wirelength without overlaps or bbox expansion;
 - guarded participation of fixed-shape, non-preplaced interior blocks in the 117- through 119-block shift pass, preserving dimensions while reducing high-count HPWL;
+- guarded combined-axis shift candidates for 116- through 119-block cases after independent overlap-free axis clamps;
 - a trimmed 120-block interior shift pass over the highest-connectivity free blocks to improve the dominant weighted case while preserving runtime-cap behavior;
 - guarded top-edge boundary compaction on the largest case when movable top-edge blocks can be pulled down without overlaps, soft-violation increase, or incident-wirelength regression;
 - tuned row-width parameters for score/runtime balance.
