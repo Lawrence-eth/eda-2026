@@ -67,7 +67,7 @@ The optimizer is a constructive heuristic:
 - tests a guarded combined-axis shift candidate on 116- through 119-block cases after independent overlap-free axis clamps;
 - applies a trimmed 120-block interior shift pass over the highest-connectivity free blocks to reduce incident wirelength while preserving runtime-cap behavior;
 - applies guarded top-edge boundary compaction on the largest case when movable top-edge blocks can be pulled inward without overlaps, soft-violation increase, or incident-wirelength regression;
-- uses a wider 120-block top-level row target with tighter large-cluster shelf packing to reduce the dominant weighted case HPWL, area, and soft ratio;
+- uses a retuned 120-block top-level row target with tighter large-cluster shelf packing to reduce the dominant weighted case HPWL and area while preserving soft violations;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
 
 ## Validation Results
@@ -75,13 +75,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.5965
-- Average cost: 3.7781
-- Average runtime: 1.5012s
-- Average HPWL gap: 1.5457
-- Average area gap: 1.5104
+- Total score: 1.5750
+- Average cost: 3.7780
+- Average runtime: 1.5388s
+- Average HPWL gap: 1.5455
+- Average area gap: 1.5101
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.7803
+- Worst per-case cost: 8.8177
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
