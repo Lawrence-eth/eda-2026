@@ -2,19 +2,19 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.7549,
-    "average_cost": 3.7801,
-    "average_runtime_seconds": 1.4998,
-    "average_hpwl_gap": 1.5516,
-    "average_area_gap": 1.5166,
-    "average_soft_violation_ratio": 0.1258,
-    "worst_case_cost": 8.7586,
+    "total_score": 1.6748,
+    "average_cost": 3.7767,
+    "average_runtime_seconds": 1.5464,
+    "average_hpwl_gap": 1.5469,
+    "average_area_gap": 1.5123,
+    "average_soft_violation_ratio": 0.1256,
+    "worst_case_cost": 8.8085,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
   "soft_violation_totals": {
     "boundary": 122,
-    "grouping": 368,
+    "grouping": 367,
     "mib": 55
   },
   "notes": [
@@ -25,6 +25,7 @@
     "Fixed-shape, non-preplaced interior blocks may participate in the guarded shift pass on 117- through 119-block cases, preserving dimensions while reducing high-count HPWL.",
     "The 116- through 119-block shift pass also tests a guarded combined-axis move after independent axis clamps, accepting only overlap-free incident-wirelength improvements inside the existing bounding box.",
     "A trimmed 120-block interior shift pass targets only the highest-connectivity free blocks to reduce incident wirelength without losing the runtime cap.",
-    "A guarded 120-block top-edge boundary compaction lowers the dominant weighted case area and HPWL without increasing soft violations."
+    "A guarded 120-block top-edge boundary compaction lowers the dominant weighted case area and HPWL without increasing soft violations.",
+    "The 116- through 119-block row-width settings were retuned from validation sweeps to reduce high-count HPWL and area while preserving 100/100 feasibility."
   ]
 }

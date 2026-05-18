@@ -58,7 +58,7 @@ The optimizer is a constructive heuristic:
 - preprocesses connectivity into lightweight tuples using vectorized tensor conversion on large cases;
 - skips unused selection-score evaluation when a block count has only one deterministic layout variant;
 - prunes high-block-count variant sets where the runtime cost outweighs placement-quality gains;
-- applies targeted row-width tuning on the highest-weight validation sizes, including the 111- through 120-block cases;
+- applies targeted row-width tuning on the highest-weight validation sizes, including retuned 116- through 119-block settings from validation sweeps;
 - uses obstacle-aware interior shelf packing on 116-block and larger cases with exact preplacements, so movable units can occupy legal gaps around preplaced rectangles instead of being forced into a strip to the right;
 - reuses cached connectivity degrees for cluster member ordering to reduce high-block-count runtime;
 - applies bounded post-placement translation of unconstrained cluster components when it removes a grouping split without overlaps or bbox expansion;
@@ -74,13 +74,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.7549
-- Average cost: 3.7801
-- Average runtime: 1.4998s
-- Average HPWL gap: 1.5516
-- Average area gap: 1.5166
-- Average soft violation ratio: 0.1258
-- Worst per-case cost: 8.7586
+- Total score: 1.6748
+- Average cost: 3.7767
+- Average runtime: 1.5464s
+- Average HPWL gap: 1.5469
+- Average area gap: 1.5123
+- Average soft violation ratio: 0.1256
+- Worst per-case cost: 8.8085
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -109,7 +109,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 368 total
+- grouping violations: 367 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.
