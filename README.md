@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.6748
-- Average cost: 3.7767
-- Average runtime: 1.5464 seconds
-- Average HPWL gap: 1.5469
-- Average area gap: 1.5123
-- Average soft violation ratio: 0.1256
-- Worst per-case cost: 8.8085
+- Total score: 1.5965
+- Average cost: 3.7781
+- Average runtime: 1.5012 seconds
+- Average HPWL gap: 1.5457
+- Average area gap: 1.5104
+- Average soft violation ratio: 0.1255
+- Worst per-case cost: 8.7803
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -84,6 +84,7 @@ Main components:
 - guarded combined-axis shift candidates for 116- through 119-block cases after independent overlap-free axis clamps;
 - a trimmed 120-block interior shift pass over the highest-connectivity free blocks to improve the dominant weighted case while preserving runtime-cap behavior;
 - guarded top-edge boundary compaction on the largest case when movable top-edge blocks can be pulled down without overlaps, soft-violation increase, or incident-wirelength regression;
+- retuned 120-block row and large-cluster packing parameters to reduce the dominant weighted case HPWL, bounding-box area, and soft ratio;
 - tuned row-width parameters for score/runtime balance.
 
 ## Quality improvements
@@ -100,7 +101,7 @@ The current implementation focuses on reducing the main soft-constraint and plac
 Soft-constraint diagnostics on the 100-case validation run:
 
 - boundary violations: 122
-- grouping violations: 367
+- grouping violations: 366
 - MIB violations: 55
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.

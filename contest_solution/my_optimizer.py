@@ -172,7 +172,7 @@ class MyOptimizer(FloorplanOptimizer):
         if block_count in tuned:
             return tuned[block_count]
         if block_count >= 120:
-            return [(1.04, 1.50, 1.44)]
+            return [(1.12, 1.50, 1.34)]
         if block_count >= 119:
             return [(0.88, 1.50, 1.34)]
         if block_count >= 118:
