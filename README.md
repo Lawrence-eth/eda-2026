@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.9362
-- Average cost: 3.7355
-- Average runtime: 1.5186 seconds
-- Average HPWL gap: 1.5248
-- Average area gap: 1.4859
-- Average soft violation ratio: 0.1254
-- Worst per-case cost: 8.6694
+- Total score: 1.7549
+- Average cost: 3.7801
+- Average runtime: 1.4998 seconds
+- Average HPWL gap: 1.5516
+- Average area gap: 1.5166
+- Average soft violation ratio: 0.1258
+- Worst per-case cost: 8.7586
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -77,6 +77,7 @@ Main components:
 - cached connectivity degrees for efficient ordering within cluster packing;
 - vectorized connectivity preprocessing for large validation cases;
 - targeted high-block-count row-width tuning, including the 111- through 120-block validation sizes;
+- obstacle-aware interior shelf packing for 116-block and larger preplaced cases, allowing movable units to use legal gaps around exact preplacements instead of being forced to the right of them;
 - bounded post-placement translation of unconstrained cluster components to remove grouping splits without overlaps or bbox expansion;
 - bounded post-placement shifts of unconstrained interior blocks on selected high-count cases to reduce incident wirelength without overlaps or bbox expansion;
 - guarded participation of fixed-shape, non-preplaced interior blocks in the 117- through 119-block shift pass, preserving dimensions while reducing high-count HPWL;
@@ -99,7 +100,7 @@ The current implementation focuses on reducing the main soft-constraint and plac
 Soft-constraint diagnostics on the 100-case validation run:
 
 - boundary violations: 122
-- grouping violations: 365
+- grouping violations: 368
 - MIB violations: 55
 
 Some remaining violations are caused by tradeoffs with hard constraints. For example, preplaced blocks cannot be moved to satisfy a soft boundary condition if that would break the required preplacement, and some MIB groups have incompatible target areas for one exact common shape.

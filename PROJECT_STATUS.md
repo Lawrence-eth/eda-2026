@@ -59,6 +59,7 @@ The optimizer is a constructive heuristic:
 - skips unused selection-score evaluation when a block count has only one deterministic layout variant;
 - prunes high-block-count variant sets where the runtime cost outweighs placement-quality gains;
 - applies targeted row-width tuning on the highest-weight validation sizes, including the 111- through 120-block cases;
+- uses obstacle-aware interior shelf packing on 116-block and larger cases with exact preplacements, so movable units can occupy legal gaps around preplaced rectangles instead of being forced into a strip to the right;
 - reuses cached connectivity degrees for cluster member ordering to reduce high-block-count runtime;
 - applies bounded post-placement translation of unconstrained cluster components when it removes a grouping split without overlaps or bbox expansion;
 - applies bounded post-placement shifts of unconstrained interior blocks on selected high-count cases when local incident wirelength improves without overlaps or bbox expansion;
@@ -73,13 +74,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.9362
-- Average cost: 3.7355
-- Average runtime: 1.5186s
-- Average HPWL gap: 1.5248
-- Average area gap: 1.4859
-- Average soft violation ratio: 0.1254
-- Worst per-case cost: 8.6694
+- Total score: 1.7549
+- Average cost: 3.7801
+- Average runtime: 1.4998s
+- Average HPWL gap: 1.5516
+- Average area gap: 1.5166
+- Average soft violation ratio: 0.1258
+- Worst per-case cost: 8.7586
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -108,7 +109,7 @@ The implementation targets the main local validation cost drivers:
 Soft-constraint diagnostics on the final 100-case validation run:
 
 - boundary violations: 122 total
-- grouping violations: 365 total
+- grouping violations: 368 total
 - MIB violations: 55 total
 
 Remaining violations are mostly hard-constraint tradeoffs. Preplaced blocks cannot be moved to satisfy a soft boundary condition without breaking fixed preplacement. Some MIB groups also have target areas that do not allow one exact common shape without creating hard area violations.

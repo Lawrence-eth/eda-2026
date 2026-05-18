@@ -111,13 +111,17 @@ class MyOptimizer(FloorplanOptimizer):
         else:
             start_x = 0.0
             start_y = 0.0
+        interior_obstacles = None
+        if block_count >= 116 and placed_rects:
+            start_x = min(p[0] for p in placed_rects)
+            interior_obstacles = placed_rects
 
         # Pack non-boundary clusters as contiguous macro-blocks.  A horizontal
         # chain guarantees each member shares an edge with the next one, which
         # sharply lowers grouping violations while preserving exact areas.
         for i, rect in self._pack_interior_units(
             interior, dims, constraints, area_targets, b2b_edges,
-            p2b_edges, start_x, start_y
+            p2b_edges, start_x, start_y, interior_obstacles
         ).items():
             positions[i] = rect
 
@@ -189,7 +193,7 @@ class MyOptimizer(FloorplanOptimizer):
         return variants
 
     def _pack_interior_units(self, interior, dims, constraints, area_targets, b2b_connectivity,
-                             p2b_connectivity, start_x, start_y) -> Dict[int, Rect]:
+                             p2b_connectivity, start_x, start_y, obstacles=None) -> Dict[int, Rect]:
         if not interior:
             return {}
         used = set()
@@ -223,17 +227,39 @@ class MyOptimizer(FloorplanOptimizer):
         x = start_x
         y = start_y
         row_h = 0.0
+        placed = list(obstacles or [])
         for u in units:
             uw, uh = u['w'], u['h']
-            if x > start_x and x + uw > start_x + row_width:
+            if placed:
+                x, y, row_h = self._next_shelf_position_avoiding(
+                    x, y, row_h, start_x, row_width, uw, uh, placed
+                )
+            elif x > start_x and x + uw > start_x + row_width:
                 x = start_x
                 y += row_h
                 row_h = 0.0
             for i, (lx, ly, w, h) in u['local'].items():
                 out[i] = (x + lx, y + ly, w, h)
+            placed.append((x, y, uw, uh))
             x += uw
             row_h = max(row_h, uh)
         return out
+
+    def _next_shelf_position_avoiding(self, x, y, row_h, start_x, row_width, w, h, placed):
+        limit = start_x + row_width
+        while True:
+            if x > start_x and x + w > limit:
+                x = start_x
+                y += max(row_h, h)
+                row_h = 0.0
+                continue
+            blocker_right = None
+            for ox, oy, ow, oh in placed:
+                if min(x + w, ox + ow) - max(x, ox) > 1e-6 and min(y + h, oy + oh) - max(y, oy) > 1e-6:
+                    blocker_right = max(blocker_right or start_x, ox + ow)
+            if blocker_right is None:
+                return x, y, row_h
+            x = blocker_right if blocker_right > x + 1e-6 else x + w
 
     def _make_boundary_cluster_units(self, movable, boundary, dims, constraints, area_targets,
                                      b2b_connectivity, p2b_connectivity):
