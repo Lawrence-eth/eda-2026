@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.5253,
-    "average_cost": 3.7781,
-    "average_runtime_seconds": 1.512,
-    "average_hpwl_gap": 1.5446,
+    "total_score": 1.5221,
+    "average_cost": 3.7788,
+    "average_runtime_seconds": 1.5356,
+    "average_hpwl_gap": 1.5442,
     "average_area_gap": 1.5097,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.7689,
+    "worst_case_cost": 8.7869,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -32,6 +32,7 @@
     "A narrow equal-shape swap pass is enabled only on 117- and 119-block cases, improving HPWL where the proxy stays under the runtime cap.",
     "The 120-block free-block shift pass checks the top 20 connectivity-weighted candidates for two passes, improving the dominant weighted case HPWL while staying below the runtime cap.",
     "The free-block shift pass pre-resolves valid pin coordinates into its adjacency cache, preserving layouts while reducing tensor-index overhead in high-count local wirelength checks.",
-    "A bounded 120-block equal-shape swap probe accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area."
+    "A bounded 120-block equal-shape swap probe accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area.",
+    "A 118-block-only boundary-line shift refinement moves same-edge boundary rows or columns only when local wirelength improves without overlaps, bbox growth, or soft-violation increase."
   ]
 }

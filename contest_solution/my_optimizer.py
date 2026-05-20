@@ -148,6 +148,10 @@ class MyOptimizer(FloorplanOptimizer):
                     self._refine_top_boundary_compaction(
                         positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                     )
+                self._refine_boundary_line_shifts_118(
+                    block_count, positions, constraints, area_targets,
+                    b2b_edges, p2b_edges, pins_pos
+                )
                 self._refine_equal_shape_swaps(
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
@@ -887,6 +891,142 @@ class MyOptimizer(FloorplanOptimizer):
             return
         for i in moving:
             positions[i] = trial[i]
+
+    def _refine_boundary_line_shifts_118(self, block_count, positions, constraints, area_targets,
+                                         b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if block_count != 118 or any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1 or constraints.shape[1] <= 4:
+            return
+
+        ncols = constraints.shape[1]
+        movable = []
+        for i in range(block_count):
+            code = int(constraints[i, 4].item())
+            if code not in (1, 2, 4, 8):
+                continue
+            if ncols > 0 and constraints[i, 0] != 0:
+                continue
+            if ncols > 1 and constraints[i, 1] != 0:
+                continue
+            if ncols > 3 and constraints[i, 3] != 0:
+                continue
+            movable.append(i)
+        if len(movable) < 2:
+            return
+
+        movable_set = set(movable)
+        b_adj = {i: [] for i in movable}
+        for a, b, w in b2b_connectivity:
+            if a in movable_set:
+                b_adj[a].append((b, w))
+            if b in movable_set:
+                b_adj[b].append((a, w))
+        p_adj = {i: [] for i in movable}
+        for pin, b, w in p2b_connectivity:
+            if b in movable_set and 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    p_adj[b].append((px, py, w))
+
+        base_soft = self._soft_violation_count(positions, constraints)
+        base_area = calculate_bbox_area(positions)
+        for code, axis in ((4, 0), (8, 0), (1, 1), (2, 1)):
+            ids = [i for i in movable if int(constraints[i, 4].item()) == code]
+            if len(ids) < 2:
+                continue
+            delta = self._boundary_line_shift_delta(ids, axis, positions, b_adj, p_adj)
+            if delta is None or abs(delta) <= 1e-6:
+                continue
+            base_wire = self._boundary_line_wire(ids, positions, b_adj, p_adj)
+            trial = list(positions)
+            for i in ids:
+                x, y, w, h = trial[i]
+                trial[i] = (x + delta, y, w, h) if axis == 0 else (x, y + delta, w, h)
+            if self._boundary_line_wire(ids, trial, b_adj, p_adj) + 1e-6 >= base_wire:
+                continue
+            if self._has_overlap(trial):
+                continue
+            if self._soft_violation_count(trial, constraints) > base_soft:
+                continue
+            if calculate_bbox_area(trial) > base_area + 1e-6:
+                continue
+            for i in ids:
+                positions[i] = trial[i]
+            base_area = calculate_bbox_area(positions)
+
+    def _boundary_line_shift_delta(self, ids, axis, positions, b_adj, p_adj):
+        left, bottom, right, top = self._bbox(positions)
+        moving = set(ids)
+        if axis == 0:
+            line_min = min(positions[i][0] for i in ids)
+            line_max = max(positions[i][0] + positions[i][2] for i in ids)
+            lo = left - line_min
+            hi = right - line_max
+            for j, rect in enumerate(positions):
+                if j in moving:
+                    continue
+                ox, oy, ow, oh = rect
+                for i in ids:
+                    x, y, w, h = positions[i]
+                    if min(y + h, oy + oh) - max(y, oy) <= 1e-6:
+                        continue
+                    if ox + ow <= x + 1e-6:
+                        lo = max(lo, ox + ow - x)
+                    elif ox >= x + w - 1e-6:
+                        hi = min(hi, ox - (x + w))
+        else:
+            line_min = min(positions[i][1] for i in ids)
+            line_max = max(positions[i][1] + positions[i][3] for i in ids)
+            lo = bottom - line_min
+            hi = top - line_max
+            for j, rect in enumerate(positions):
+                if j in moving:
+                    continue
+                ox, oy, ow, oh = rect
+                for i in ids:
+                    x, y, w, h = positions[i]
+                    if min(x + w, ox + ow) - max(x, ox) <= 1e-6:
+                        continue
+                    if oy + oh <= y + 1e-6:
+                        lo = max(lo, oy + oh - y)
+                    elif oy >= y + h - 1e-6:
+                        hi = min(hi, oy - (y + h))
+        if lo > hi + 1e-6:
+            return None
+
+        targets = []
+        for i in ids:
+            desired = self._desired_center_fast(i, positions, b_adj.get(i, ()), p_adj.get(i, ()), None)
+            if desired is None:
+                continue
+            x, y, w, h = positions[i]
+            current = x + 0.5 * w if axis == 0 else y + 0.5 * h
+            targets.append(desired[axis] - current)
+        if not targets:
+            return None
+        targets.sort()
+        return min(max(targets[len(targets) // 2], lo), hi)
+
+    def _boundary_line_wire(self, ids, positions, b_adj, p_adj):
+        total = 0.0
+        seen = set()
+        for i in ids:
+            ix, iy, iw, ih = positions[i]
+            icx = ix + 0.5 * iw
+            icy = iy + 0.5 * ih
+            for other, w in b_adj.get(i, ()):
+                key = (min(i, other), max(i, other))
+                if key in seen:
+                    continue
+                seen.add(key)
+                if 0 <= other < len(positions):
+                    ox, oy, ow, oh = positions[other]
+                    total += w * (abs(icx - (ox + 0.5 * ow)) + abs(icy - (oy + 0.5 * oh)))
+            for px, py, w in p_adj.get(i, ()):
+                total += w * (abs(icx - px) + abs(icy - py))
+        return total
 
     def _refine_equal_shape_swaps(self, block_count, positions, constraints, area_targets,
                                   b2b_connectivity, p2b_connectivity, pins_pos) -> None:
