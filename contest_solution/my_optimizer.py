@@ -524,6 +524,11 @@ class MyOptimizer(FloorplanOptimizer):
                 x += w
                 row_h = max(row_h, h)
 
+        if len(positions) >= 120 and len(right_only) > 1:
+            self._refine_right_boundary_positions_once(
+                right_only, positions, b2b_key_context, p2b_key_context, pins_pos, constraints
+            )
+
     def _boundary_cluster_anchors(self, items):
         anchors = {}
         for item in items:
@@ -661,6 +666,152 @@ class MyOptimizer(FloorplanOptimizer):
             item, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
         )
         return (key[0], key[1] - 1.5 * item['h'], key[2])
+
+    def _refine_right_boundary_order_once(self, right_only, positions, b2b_context, p2b_context,
+                                          pins_pos, constraints, right_edge, start_y) -> None:
+        if not isinstance(b2b_context, dict) or not isinstance(p2b_context, dict):
+            return
+        ncols = constraints.shape[1] if constraints is not None and constraints.dim() > 1 else 0
+        rects = []
+        right_rects = {}
+        y = start_y
+        for item in right_only:
+            ids = list(item.get('ids', item['local'].keys()))
+            if len(ids) != 1:
+                rects.append(None)
+                y += item['h']
+                continue
+            block = ids[0]
+            w, h = item['w'], item['h']
+            rect = (right_edge - w, y, w, h)
+            rects.append((block, rect))
+            right_rects[block] = rect
+            y += h
+
+        best = None
+        for idx in range(len(right_only) - 1):
+            left = rects[idx]
+            right = rects[idx + 1]
+            if left is None or right is None:
+                continue
+            a, rect_a = left
+            b, rect_b = right
+            if ncols > 0 and (constraints[a, 0] != 0 or constraints[b, 0] != 0):
+                continue
+            if ncols > 3 and (constraints[a, 3] != 0 or constraints[b, 3] != 0):
+                continue
+            swapped_a = (rect_a[0], rect_b[1], rect_a[2], rect_a[3])
+            swapped_b = (rect_b[0], rect_a[1], rect_b[2], rect_b[3])
+            delta = self._boundary_order_pair_delta(
+                a, b, rect_a, rect_b, swapped_a, swapped_b,
+                positions, b2b_context, p2b_context, pins_pos, right_rects
+            )
+            if delta < -1e-6 and (best is None or delta < best[0]):
+                best = (delta, idx)
+        if best is None:
+            return
+        idx = best[1]
+        right_only[idx], right_only[idx + 1] = right_only[idx + 1], right_only[idx]
+
+    def _boundary_order_pair_delta(self, a, b, rect_a, rect_b, new_a, new_b,
+                                   positions, b2b_context, p2b_context, pins_pos, right_rects):
+        ids = {a, b}
+
+        def center(rect):
+            x, y, w, h = rect
+            return x + 0.5 * w, y + 0.5 * h
+
+        def rect_for(block, swapped):
+            if block == a:
+                return new_a if swapped else rect_a
+            if block == b:
+                return new_b if swapped else rect_b
+            if block in right_rects:
+                return right_rects[block]
+            if 0 <= block < len(positions) and positions[block] is not None:
+                return positions[block]
+            return None
+
+        old = 0.0
+        new = 0.0
+        seen = set()
+        records = []
+        for block in ids:
+            records.extend(b2b_context.get(block, ()))
+        for edge_idx, u, v, weight in records:
+            if edge_idx in seen or u < 0 or v < 0:
+                continue
+            seen.add(edge_idx)
+            old_u = rect_for(u, False)
+            old_v = rect_for(v, False)
+            new_u = rect_for(u, True)
+            new_v = rect_for(v, True)
+            if old_u is None or old_v is None or new_u is None or new_v is None:
+                continue
+            oux, ouy = center(old_u)
+            ovx, ovy = center(old_v)
+            nux, nuy = center(new_u)
+            nvx, nvy = center(new_v)
+            old += weight * (abs(oux - ovx) + abs(ouy - ovy))
+            new += weight * (abs(nux - nvx) + abs(nuy - nvy))
+
+        seen.clear()
+        records = []
+        for block in ids:
+            records.extend(p2b_context.get(block, ()))
+        for edge_idx, pin, block, weight in records:
+            if edge_idx in seen or pin < 0 or block < 0 or pin >= len(pins_pos):
+                continue
+            seen.add(edge_idx)
+            px = float(pins_pos[pin, 0])
+            py = float(pins_pos[pin, 1])
+            if px == -1.0 or py == -1.0:
+                continue
+            old_rect = rect_for(block, False)
+            new_rect = rect_for(block, True)
+            if old_rect is None or new_rect is None:
+                continue
+            ocx, ocy = center(old_rect)
+            ncx, ncy = center(new_rect)
+            old += weight * (abs(ocx - px) + abs(ocy - py))
+            new += weight * (abs(ncx - px) + abs(ncy - py))
+        return new - old
+
+    def _refine_right_boundary_positions_once(self, right_only, positions, b2b_context,
+                                              p2b_context, pins_pos, constraints) -> None:
+        if not isinstance(b2b_context, dict) or not isinstance(p2b_context, dict):
+            return
+        ncols = constraints.shape[1] if constraints is not None and constraints.dim() > 1 else 0
+        blocks = []
+        for item in right_only:
+            ids = list(item.get('ids', item['local'].keys()))
+            if len(ids) == 1:
+                blocks.append(ids[0])
+        blocks.sort(key=lambda i: (positions[i][1], i))
+        best = None
+        for idx in range(len(blocks) - 1):
+            a, b = blocks[idx], blocks[idx + 1]
+            if ncols > 0 and (constraints[a, 0] != 0 or constraints[b, 0] != 0):
+                continue
+            if ncols > 3 and (constraints[a, 3] != 0 or constraints[b, 3] != 0):
+                continue
+            trial = list(positions)
+            self._swap_adjacent_boundary_pair(2, a, b, trial)
+            if self._overlaps_any_except(trial[a], trial, a):
+                continue
+            if self._overlaps_any_except(trial[b], trial, b):
+                continue
+            delta = self._boundary_order_pair_delta(
+                a, b, positions[a], positions[b], trial[a], trial[b],
+                positions, b2b_context, p2b_context, pins_pos, {}
+            )
+            if delta < -1e-6 and (best is None or delta < best[0]):
+                best = (delta, a, b, trial[a], trial[b])
+        if best is None:
+            return
+        _delta, a, b, rect_a, rect_b = best
+        positions[a] = rect_a
+        positions[b] = rect_b
 
     def _refine_group_translations(self, block_count, positions, constraints, area_targets,
                                    b2b_connectivity, p2b_connectivity, pins_pos) -> None:
