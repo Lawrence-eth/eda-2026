@@ -785,7 +785,7 @@ class MyOptimizer(FloorplanOptimizer):
         degrees = self._connection_degrees(movable, b2b_connectivity, p2b_connectivity)
         ordered = sorted(movable, key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
         if block_count >= 120:
-            ordered = ordered[:16]
+            ordered = ordered[:20]
 
         passes = 2 if block_count in (117, 119) else 1
         for _pass in range(passes):
