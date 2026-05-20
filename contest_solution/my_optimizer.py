@@ -417,6 +417,8 @@ class MyOptimizer(FloorplanOptimizer):
         ))
         top_only.sort(key=lambda u: self._boundary_item_key(
             u, 0, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
+        ) if len(positions) < 119 else self._top_boundary_width_key(
+            u, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
         bottom_only.sort(key=lambda u: self._boundary_item_key(
             u, 0, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
@@ -641,6 +643,13 @@ class MyOptimizer(FloorplanOptimizer):
 
     def _bottom_boundary_width_key(self, item, positions, b2b_connectivity, p2b_connectivity, pins_pos,
                                    cluster_anchor):
+        key = self._boundary_item_key(
+            item, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        )
+        return (key[0], key[1] - 0.5 * item['w'], key[2])
+
+    def _top_boundary_width_key(self, item, positions, b2b_connectivity, p2b_connectivity, pins_pos,
+                                cluster_anchor):
         key = self._boundary_item_key(
             item, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
         )
