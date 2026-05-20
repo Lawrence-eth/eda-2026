@@ -82,13 +82,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.5177
-- Average cost: 3.7799
-- Average runtime: 1.4897s
-- Average HPWL gap: 1.5426
-- Average area gap: 1.5094
+- Total score: 1.5172
+- Average cost: 3.7789
+- Average runtime: 1.5120s
+- Average HPWL gap: 1.5422
+- Average area gap: 1.5086
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.8109
+- Worst per-case cost: 8.8116
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
