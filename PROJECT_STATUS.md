@@ -73,6 +73,7 @@ The optimizer is a constructive heuristic:
 - pre-resolves valid pin coordinates into the free-block shift pass adjacency cache, reducing high-count local wirelength overhead without changing layouts;
 - applies a bounded 120-block equal-shape swap probe that accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area;
 - applies a 118-block-only boundary-line shift refinement when same-edge boundary movement improves local wirelength without overlaps, bbox growth, or soft-violation increase;
+- retunes the 118-block cluster-local width to reduce weighted HPWL with only a tiny area tradeoff;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
 
 ## Validation Results
@@ -80,13 +81,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.5221
-- Average cost: 3.7788
-- Average runtime: 1.5356s
+- Total score: 1.5220
+- Average cost: 3.7780
+- Average runtime: 1.6119s
 - Average HPWL gap: 1.5442
 - Average area gap: 1.5097
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.7869
+- Worst per-case cost: 8.7805
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
