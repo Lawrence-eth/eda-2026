@@ -1200,24 +1200,26 @@ class MyOptimizer(FloorplanOptimizer):
             if len(ids) < 2:
                 continue
             axis = 1 if code in (1, 2) else 0
-            ordered = sorted(ids, key=lambda i: (positions[i][axis], i))
-            best = None
-            for pos in range(len(ordered) - 1):
-                i, j = ordered[pos], ordered[pos + 1]
-                trial = list(positions)
-                self._swap_adjacent_boundary_pair(code, i, j, trial)
-                if self._overlaps_any_except(trial[i], trial, i):
-                    continue
-                if self._overlaps_any_except(trial[j], trial, j):
-                    continue
-                if calculate_bbox_area(trial) > base_area + 1e-6:
-                    continue
-                old_wire = self._local_wire_for_ids((i, j), positions, b_adj, p_adj)
-                new_wire = self._local_wire_for_ids((i, j), trial, b_adj, p_adj)
-                delta = new_wire - old_wire
-                if delta < -1e-6 and (best is None or delta < best[0]):
-                    best = (delta, i, j, trial[i], trial[j])
-            if best is not None:
+            for _pass in range(2):
+                ordered = sorted(ids, key=lambda i: (positions[i][axis], i))
+                best = None
+                for pos in range(len(ordered) - 1):
+                    i, j = ordered[pos], ordered[pos + 1]
+                    trial = list(positions)
+                    self._swap_adjacent_boundary_pair(code, i, j, trial)
+                    if self._overlaps_any_except(trial[i], trial, i):
+                        continue
+                    if self._overlaps_any_except(trial[j], trial, j):
+                        continue
+                    if calculate_bbox_area(trial) > base_area + 1e-6:
+                        continue
+                    old_wire = self._local_wire_for_ids((i, j), positions, b_adj, p_adj)
+                    new_wire = self._local_wire_for_ids((i, j), trial, b_adj, p_adj)
+                    delta = new_wire - old_wire
+                    if delta < -1e-6 and (best is None or delta < best[0]):
+                        best = (delta, i, j, trial[i], trial[j])
+                if best is None:
+                    break
                 _delta, i, j, rect_i, rect_j = best
                 positions[i] = rect_i
                 positions[j] = rect_j

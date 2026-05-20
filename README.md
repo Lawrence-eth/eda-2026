@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.5169
-- Average cost: 3.7813
-- Average runtime: 1.5118 seconds
+- Total score: 1.5168
+- Average cost: 3.7757
+- Average runtime: 1.4836 seconds
 - Average HPWL gap: 1.5420
 - Average area gap: 1.5085
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.8638
+- Worst per-case cost: 8.7882
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -92,7 +92,7 @@ Main components:
 - a 119-block grouped-boundary ordering fallback to the net-aware key when it preserves soft counts and improves the high-weight HPWL proxy;
 - pre-resolved pin coordinates in free-block shift adjacency caches to reduce high-count local wirelength overhead without changing layouts;
 - a bounded 120-block equal-shape swap probe that accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area;
-- a 116- through 119-block adjacent boundary wire-swap pass that applies at most one same-edge local swap per side when incident wirelength improves without overlaps or bbox growth, while leaving the 120-block incumbent path unchanged;
+- a 116- through 119-block adjacent boundary wire-swap pass that applies up to two same-edge local swaps per side when incident wirelength improves without overlaps or bbox growth, while leaving the 120-block incumbent path unchanged;
 - tuned row-width parameters for score/runtime balance.
 
 ## Quality improvements

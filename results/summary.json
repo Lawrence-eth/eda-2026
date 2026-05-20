@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.5169,
-    "average_cost": 3.7813,
-    "average_runtime_seconds": 1.5118,
-    "average_hpwl_gap": 1.542,
+    "total_score": 1.5168,
+    "average_cost": 3.7757,
+    "average_runtime_seconds": 1.4836,
+    "average_hpwl_gap": 1.5419,
     "average_area_gap": 1.5085,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.8638,
+    "worst_case_cost": 8.7882,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -39,6 +39,6 @@
     "A right-edge boundary ordering bias for 119- and 120-block cases favors taller items when net-aware keys are close, improving the two highest-weight HPWL proxies without changing soft violations.",
     "A bottom-edge boundary ordering bias for 119- and 120-block cases favors wider items slightly, improving the dominant 120-block HPWL proxy without changing soft violations.",
     "A 120-block-only left-edge boundary ordering bias favors taller items, improving the dominant case HPWL while leaving the 119- and 118-block proxies unchanged.",
-    "A 116- through 119-block adjacent boundary wire-swap pass applies at most one same-edge local swap per side when incident wirelength improves without overlaps or bbox growth, while preserving the 120-block incumbent path."
+    "A 116- through 119-block adjacent boundary wire-swap pass applies up to two same-edge local swaps per side when incident wirelength improves without overlaps or bbox growth, while preserving the 120-block incumbent path."
   ]
 }
