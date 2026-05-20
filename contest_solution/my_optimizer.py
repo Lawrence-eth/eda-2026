@@ -890,7 +890,7 @@ class MyOptimizer(FloorplanOptimizer):
 
     def _refine_equal_shape_swaps(self, block_count, positions, constraints, area_targets,
                                   b2b_connectivity, p2b_connectivity, pins_pos) -> None:
-        if block_count not in (117, 119):
+        if block_count not in (117, 119, 120):
             return
         if any(p is None for p in positions):
             return
@@ -900,9 +900,12 @@ class MyOptimizer(FloorplanOptimizer):
         ncols = constraints.shape[1]
         base_positions = list(positions)
         base_soft = self._soft_violation_count(base_positions, constraints)
-        base_cost = self._selection_cost(
-            base_positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
-        )
+        if block_count < 120:
+            base_cost = self._selection_cost(
+                base_positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
+            )
+        else:
+            base_cost = None
 
         buckets = {}
         candidates = []
@@ -942,12 +945,14 @@ class MyOptimizer(FloorplanOptimizer):
             if len(ids) < 2:
                 continue
             ids.sort(key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
-            ordered_buckets.append(ids[:24])
+            ordered_buckets.append(ids[:8] if block_count >= 120 else ids[:24])
         if not ordered_buckets:
             return
 
         swaps = 0
-        while swaps < 2:
+        total_delta = 0.0
+        max_swaps = 1 if block_count >= 120 else 2
+        while swaps < max_swaps:
             best = None
             for ids in ordered_buckets:
                 for pos_i, i in enumerate(ids):
@@ -964,15 +969,20 @@ class MyOptimizer(FloorplanOptimizer):
             xj, yj, wj, hj = positions[j]
             positions[i] = (xj, yj, wi, hi)
             positions[j] = (xi, yi, wj, hj)
+            total_delta += _delta
             swaps += 1
 
         if swaps == 0:
             return
         new_soft = self._soft_violation_count(positions, constraints)
-        new_cost = self._selection_cost(
-            positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
-        )
-        if new_soft > base_soft or new_cost >= base_cost - 1e-6:
+        if block_count >= 120:
+            reject = new_soft > base_soft or total_delta >= -2.0
+        else:
+            new_cost = self._selection_cost(
+                positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
+            )
+            reject = new_soft > base_soft or new_cost >= base_cost - 1e-6
+        if reject:
             for i, rect in enumerate(base_positions):
                 positions[i] = rect
 
