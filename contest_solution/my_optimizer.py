@@ -144,9 +144,10 @@ class MyOptimizer(FloorplanOptimizer):
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
                 )
-                self._refine_top_boundary_compaction(
-                    positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
-                )
+                if block_count >= 120:
+                    self._refine_top_boundary_compaction(
+                        positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
+                    )
                 self._refine_equal_shape_swaps(
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
