@@ -171,7 +171,7 @@ class MyOptimizer(FloorplanOptimizer):
             116: [(0.92, 1.00, 1.34)],
             117: [(1.00, 1.50, 1.34)],
             118: [(0.92, 1.00, 1.34)],
-            119: [(1.08, 1.50, 1.34)],
+            119: [(1.12, 1.50, 1.34)],
         }
         if block_count in tuned:
             return tuned[block_count]
