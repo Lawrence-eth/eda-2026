@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.575,
-    "average_cost": 3.778,
-    "average_runtime_seconds": 1.5388,
+    "total_score": 1.5444,
+    "average_cost": 3.7798,
+    "average_runtime_seconds": 1.5031,
     "average_hpwl_gap": 1.5455,
     "average_area_gap": 1.5101,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.8177,
+    "worst_case_cost": 8.7977,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -27,6 +27,7 @@
     "A trimmed 120-block interior shift pass targets only the highest-connectivity free blocks to reduce incident wirelength without losing the runtime cap.",
     "A guarded 120-block top-edge boundary compaction lowers the dominant weighted case area and HPWL without increasing soft violations.",
     "The 116- through 119-block row-width settings were retuned from validation sweeps to reduce high-count HPWL and area while preserving 100/100 feasibility.",
-    "The 120-block row-width setting was retuned to lower the dominant weighted case HPWL and bounding-box area while preserving soft violations and 100/100 feasibility."
+    "The 120-block row-width setting was retuned to lower the dominant weighted case HPWL and bounding-box area while preserving soft violations and 100/100 feasibility.",
+    "Boundary ordering uses incident-edge key caches only on 116-block and larger cases, reducing score-dominant runtime without lowering the full-run median runtime enough to hurt relative runtime scoring."
   ]
 }

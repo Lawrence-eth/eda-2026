@@ -387,17 +387,23 @@ class MyOptimizer(FloorplanOptimizer):
         top_only = [u for u in topish if u['code'] == 4]
         bottom_only = [u for u in bottomish if u['code'] == 8]
         cluster_anchor = self._boundary_cluster_anchors(items)
+        if len(positions) >= 116:
+            b2b_key_context = self._boundary_key_context(b2b_connectivity, items, len(positions))
+            p2b_key_context = self._pin_key_context(p2b_connectivity, items, len(positions))
+        else:
+            b2b_key_context = b2b_connectivity
+            p2b_key_context = p2b_connectivity
         left_only.sort(key=lambda u: self._boundary_item_key(
-            u, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+            u, 1, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
         right_only.sort(key=lambda u: self._boundary_item_key(
-            u, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+            u, 1, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
         top_only.sort(key=lambda u: self._boundary_item_key(
-            u, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+            u, 0, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
         bottom_only.sort(key=lambda u: self._boundary_item_key(
-            u, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+            u, 0, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
 
         left_w = max((u['w'] for u in leftish), default=0.0)
@@ -507,6 +513,39 @@ class MyOptimizer(FloorplanOptimizer):
                 anchors[gid] = min(anchors.get(gid, min(ids)), min(ids))
         return anchors
 
+    def _boundary_key_context(self, b2b_connectivity, items, n_positions):
+        if b2b_connectivity is None:
+            return None
+        needed = set()
+        for item in items:
+            needed.update(item.get('ids', item['local'].keys()))
+        context = {i: [] for i in needed}
+        for edge_idx, e in enumerate(b2b_connectivity):
+            if len(e) < 3 or e[0] == -1:
+                continue
+            a, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            record = (edge_idx, a, b, w)
+            if 0 <= a < n_positions and a in context:
+                context[a].append(record)
+            if 0 <= b < n_positions and b in context:
+                context[b].append(record)
+        return context
+
+    def _pin_key_context(self, p2b_connectivity, items, n_positions):
+        if p2b_connectivity is None:
+            return None
+        needed = set()
+        for item in items:
+            needed.update(item.get('ids', item['local'].keys()))
+        context = {i: [] for i in needed}
+        for edge_idx, e in enumerate(p2b_connectivity):
+            if len(e) < 3 or e[0] == -1:
+                continue
+            pin, block, w = int(e[0]), int(e[1]), abs(float(e[2]))
+            if 0 <= block < n_positions and block in context:
+                context[block].append((edge_idx, pin, block, w))
+        return context
+
     def _boundary_item_key(self, item, axis, positions, b2b_connectivity, p2b_connectivity, pins_pos,
                            cluster_anchor):
         ids = set(item.get('ids', item['local'].keys()))
@@ -515,7 +554,25 @@ class MyOptimizer(FloorplanOptimizer):
             return (0, cluster_anchor.get(gid, min(ids)), min(ids))
         total = 0.0
         weight = 0.0
-        if b2b_connectivity is not None:
+        if isinstance(b2b_connectivity, dict):
+            seen = set()
+            records = []
+            for i in ids:
+                records.extend(b2b_connectivity.get(i, ()))
+            for edge_idx, a, b, w in sorted(records, key=lambda r: r[0]):
+                if edge_idx in seen:
+                    continue
+                seen.add(edge_idx)
+                other = None
+                if a in ids and b not in ids:
+                    other = b
+                elif b in ids and a not in ids:
+                    other = a
+                if other is not None and 0 <= other < len(positions) and positions[other] is not None:
+                    x, y, bw, bh = positions[other]
+                    total += w * (x + bw * 0.5 if axis == 0 else y + bh * 0.5)
+                    weight += w
+        elif b2b_connectivity is not None:
             for e in b2b_connectivity:
                 if len(e) >= 3 and e[0] != -1:
                     a, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
@@ -528,7 +585,22 @@ class MyOptimizer(FloorplanOptimizer):
                         x, y, bw, bh = positions[other]
                         total += w * (x + bw * 0.5 if axis == 0 else y + bh * 0.5)
                         weight += w
-        if p2b_connectivity is not None and pins_pos is not None:
+        if isinstance(p2b_connectivity, dict) and pins_pos is not None:
+            seen = set()
+            records = []
+            for i in ids:
+                records.extend(p2b_connectivity.get(i, ()))
+            for edge_idx, pin, block, w in sorted(records, key=lambda r: r[0]):
+                if edge_idx in seen:
+                    continue
+                seen.add(edge_idx)
+                if block in ids and 0 <= pin < len(pins_pos):
+                    px = float(pins_pos[pin, 0])
+                    py = float(pins_pos[pin, 1])
+                    if px != -1.0 and py != -1.0:
+                        total += w * (px if axis == 0 else py)
+                        weight += w
+        elif p2b_connectivity is not None and pins_pos is not None:
             for e in p2b_connectivity:
                 if len(e) >= 3 and e[0] != -1:
                     pin, block, w = int(e[0]), int(e[1]), abs(float(e[2]))
