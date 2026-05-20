@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.5172
-- Average cost: 3.7789
-- Average runtime: 1.5120 seconds
-- Average HPWL gap: 1.5422
-- Average area gap: 1.5086
+- Total score: 1.5171
+- Average cost: 3.7708
+- Average runtime: 1.4979 seconds
+- Average HPWL gap: 1.5421
+- Average area gap: 1.5085
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.8116
+- Worst per-case cost: 8.7688
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
