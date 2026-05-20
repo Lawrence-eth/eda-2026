@@ -951,7 +951,7 @@ class MyOptimizer(FloorplanOptimizer):
 
         swaps = 0
         total_delta = 0.0
-        max_swaps = 1 if block_count >= 120 else 2
+        max_swaps = 2
         while swaps < max_swaps:
             best = None
             for ids in ordered_buckets:
