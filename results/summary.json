@@ -2,13 +2,13 @@
   "validation_set": "LiteTensorDataTest, 100 cases",
   "metrics": {
     "feasible_cases": "100/100",
-    "total_score": 1.522,
-    "average_cost": 3.778,
-    "average_runtime_seconds": 1.6119,
-    "average_hpwl_gap": 1.5442,
+    "total_score": 1.5196,
+    "average_cost": 3.7783,
+    "average_runtime_seconds": 1.5041,
+    "average_hpwl_gap": 1.5439,
     "average_area_gap": 1.5097,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.7805,
+    "worst_case_cost": 8.8477,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -34,6 +34,7 @@
     "The free-block shift pass pre-resolves valid pin coordinates into its adjacency cache, preserving layouts while reducing tensor-index overhead in high-count local wirelength checks.",
     "A bounded 120-block equal-shape swap probe accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area.",
     "A 118-block-only boundary-line shift refinement moves same-edge boundary rows or columns only when local wirelength improves without overlaps, bbox growth, or soft-violation increase.",
-    "The 118-block cluster-local width is retuned to reduce weighted HPWL with only a tiny area tradeoff."
+    "The 118-block cluster-local width is retuned to reduce weighted HPWL with only a tiny area tradeoff.",
+    "The 119-block grouped-boundary ordering falls back to the net-aware key when it preserves soft counts and improves the high-weight HPWL proxy."
   ]
 }

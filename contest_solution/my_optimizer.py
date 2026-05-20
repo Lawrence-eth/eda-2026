@@ -559,7 +559,7 @@ class MyOptimizer(FloorplanOptimizer):
                            cluster_anchor):
         ids = set(item.get('ids', item['local'].keys()))
         gid = item.get('gid', 0)
-        if gid:
+        if gid and len(positions) != 119:
             return (0, cluster_anchor.get(gid, min(ids)), min(ids))
         total = 0.0
         weight = 0.0
