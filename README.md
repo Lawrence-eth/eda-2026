@@ -9,13 +9,13 @@ The solution is designed around hard-constraint correctness first, then placemen
 Validation set: LiteTensorDataTest, 100 cases.
 
 - Feasible layouts: 100 / 100
-- Total score: 1.5444
-- Average cost: 3.7798
-- Average runtime: 1.5031 seconds
-- Average HPWL gap: 1.5455
+- Total score: 1.5432
+- Average cost: 3.7768
+- Average runtime: 1.5025 seconds
+- Average HPWL gap: 1.5453
 - Average area gap: 1.5101
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.7977
+- Worst per-case cost: 8.7819
 - Unit tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED
@@ -86,6 +86,7 @@ Main components:
 - guarded top-edge boundary compaction on the largest case when movable top-edge blocks can be pulled down without overlaps, soft-violation increase, or incident-wirelength regression;
 - retuned 120-block row and large-cluster packing parameters to reduce the dominant weighted case HPWL and bounding-box area while preserving soft violations;
 - incident-edge caches for boundary ordering on 116-block and larger cases, reducing score-dominant runtime while preserving layouts and median-runtime balance;
+- a narrow equal-shape swap pass on 117- and 119-block cases to improve HPWL without changing soft violations;
 - tuned row-width parameters for score/runtime balance.
 
 ## Quality improvements

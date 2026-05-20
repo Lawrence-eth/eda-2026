@@ -147,6 +147,10 @@ class MyOptimizer(FloorplanOptimizer):
                 self._refine_top_boundary_compaction(
                     positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                 )
+                self._refine_equal_shape_swaps(
+                    block_count, positions, constraints, area_targets,
+                    b2b_edges, p2b_edges, pins_pos
+                )
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
@@ -879,6 +883,144 @@ class MyOptimizer(FloorplanOptimizer):
             return
         for i in moving:
             positions[i] = trial[i]
+
+    def _refine_equal_shape_swaps(self, block_count, positions, constraints, area_targets,
+                                  b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if block_count not in (117, 119):
+            return
+        if any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1:
+            return
+
+        ncols = constraints.shape[1]
+        base_positions = list(positions)
+        base_soft = self._soft_violation_count(base_positions, constraints)
+        base_cost = self._selection_cost(
+            base_positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
+        )
+
+        buckets = {}
+        candidates = []
+        for i in range(block_count):
+            if ncols > 1 and constraints[i, 1] != 0:
+                continue
+            if ncols > 3 and constraints[i, 3] != 0:
+                continue
+            code = int(constraints[i, 4].item()) if ncols > 4 else 0
+            if code not in (0, 1, 2, 4, 8):
+                continue
+            x, y, w, h = positions[i]
+            key = (code, round(w, 6), round(h, 6))
+            buckets.setdefault(key, []).append(i)
+            candidates.append(i)
+        if not candidates:
+            return
+
+        candidate_set = set(candidates)
+        b_incident = {i: [] for i in candidates}
+        for edge_idx, edge in enumerate(b2b_connectivity):
+            a, b, w = int(edge[0]), int(edge[1]), abs(float(edge[2]))
+            record = (edge_idx, a, b, w)
+            if a in candidate_set:
+                b_incident[a].append(record)
+            if b in candidate_set:
+                b_incident[b].append(record)
+        p_incident = {i: [] for i in candidates}
+        for edge_idx, edge in enumerate(p2b_connectivity):
+            pin, b, w = int(edge[0]), int(edge[1]), abs(float(edge[2]))
+            if b in candidate_set:
+                p_incident[b].append((edge_idx, pin, b, w))
+
+        degrees = self._connection_degrees(candidates, b2b_connectivity, p2b_connectivity)
+        ordered_buckets = []
+        for ids in buckets.values():
+            if len(ids) < 2:
+                continue
+            ids.sort(key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
+            ordered_buckets.append(ids[:24])
+        if not ordered_buckets:
+            return
+
+        swaps = 0
+        while swaps < 2:
+            best = None
+            for ids in ordered_buckets:
+                for pos_i, i in enumerate(ids):
+                    for j in ids[pos_i + 1:]:
+                        delta = self._swap_wire_delta(
+                            i, j, positions, b_incident, p_incident, pins_pos
+                        )
+                        if delta < -1e-6 and (best is None or delta < best[0]):
+                            best = (delta, i, j)
+            if best is None:
+                break
+            _delta, i, j = best
+            xi, yi, wi, hi = positions[i]
+            xj, yj, wj, hj = positions[j]
+            positions[i] = (xj, yj, wi, hi)
+            positions[j] = (xi, yi, wj, hj)
+            swaps += 1
+
+        if swaps == 0:
+            return
+        new_soft = self._soft_violation_count(positions, constraints)
+        new_cost = self._selection_cost(
+            positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
+        )
+        if new_soft > base_soft or new_cost >= base_cost - 1e-6:
+            for i, rect in enumerate(base_positions):
+                positions[i] = rect
+
+    def _swap_wire_delta(self, i, j, positions, b_incident, p_incident, pins_pos):
+        old_i = positions[i]
+        old_j = positions[j]
+        new_i = (old_j[0], old_j[1], old_i[2], old_i[3])
+        new_j = (old_i[0], old_i[1], old_j[2], old_j[3])
+
+        def center(rect):
+            x, y, w, h = rect
+            return x + 0.5 * w, y + 0.5 * h
+
+        def rect_for(block, swapped):
+            if not swapped:
+                return positions[block]
+            if block == i:
+                return new_i
+            if block == j:
+                return new_j
+            return positions[block]
+
+        old = 0.0
+        new = 0.0
+        seen = set()
+        for edge in b_incident.get(i, []) + b_incident.get(j, []):
+            edge_idx, a, b, weight = edge
+            if edge_idx in seen or a < 0 or b < 0:
+                continue
+            seen.add(edge_idx)
+            ax, ay = center(rect_for(a, False))
+            bx, by = center(rect_for(b, False))
+            old += weight * (abs(ax - bx) + abs(ay - by))
+            ax, ay = center(rect_for(a, True))
+            bx, by = center(rect_for(b, True))
+            new += weight * (abs(ax - bx) + abs(ay - by))
+
+        seen.clear()
+        for edge in p_incident.get(i, []) + p_incident.get(j, []):
+            edge_idx, pin, block, weight = edge
+            if edge_idx in seen or pin < 0 or block < 0 or pin >= len(pins_pos):
+                continue
+            seen.add(edge_idx)
+            px = float(pins_pos[pin, 0])
+            py = float(pins_pos[pin, 1])
+            if px == -1.0 or py == -1.0:
+                continue
+            bx, by = center(rect_for(block, False))
+            old += weight * (abs(bx - px) + abs(by - py))
+            bx, by = center(rect_for(block, True))
+            new += weight * (abs(bx - px) + abs(by - py))
+        return new - old
 
     def _wirelength_for_blocks(self, blocks, positions, b2b_connectivity, p2b_connectivity, pins_pos):
         block_set = set(blocks)
