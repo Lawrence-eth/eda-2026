@@ -75,6 +75,7 @@ The optimizer is a constructive heuristic:
 - applies a 118-block-only boundary-line shift refinement when same-edge boundary movement improves local wirelength without overlaps, bbox growth, or soft-violation increase;
 - retunes the 118-block cluster-local width to reduce weighted HPWL with only a tiny area tradeoff;
 - uses a 119-block grouped-boundary ordering fallback to the net-aware key when it preserves soft counts and improves the high-weight HPWL proxy;
+- applies a 116- through 119-block adjacent boundary wire-swap pass that accepts at most one same-edge local swap per side when incident wirelength improves without overlaps or bbox growth, while leaving the 120-block incumbent path unchanged;
 - tries a bounded set of deterministic layout variants and selects with a cheap HPWL, area, and soft-constraint proxy.
 
 ## Validation Results
@@ -82,13 +83,13 @@ The optimizer is a constructive heuristic:
 Final local validation over 100 Lite validation cases:
 
 - Feasible: 100 / 100
-- Total score: 1.5171
-- Average cost: 3.7708
-- Average runtime: 1.4979s
-- Average HPWL gap: 1.5421
+- Total score: 1.5169
+- Average cost: 3.7813
+- Average runtime: 1.5118s
+- Average HPWL gap: 1.5420
 - Average area gap: 1.5085
 - Average soft violation ratio: 0.1255
-- Worst per-case cost: 8.7688
+- Worst per-case cost: 8.8638
 - Tests: 2 / 2 passed
 - Public regression tests: 52 / 52 passed
 - Official validator: PASSED

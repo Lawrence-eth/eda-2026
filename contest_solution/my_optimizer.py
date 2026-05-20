@@ -156,6 +156,9 @@ class MyOptimizer(FloorplanOptimizer):
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
                 )
+                self._refine_boundary_adjacent_wire_swaps(
+                    block_count, positions, constraints, b2b_edges, p2b_edges, pins_pos
+                )
 
         if self._has_overlap([p for p in positions if p is not None]):
             # Absolute safety fallback: all non-preplaced blocks in a disjoint strip.
@@ -1152,6 +1155,116 @@ class MyOptimizer(FloorplanOptimizer):
         if reject:
             for i, rect in enumerate(base_positions):
                 positions[i] = rect
+
+    def _refine_boundary_adjacent_wire_swaps(self, block_count, positions, constraints,
+                                             b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if block_count < 116 or block_count >= 120 or any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1 or constraints.shape[1] <= 4:
+            return
+
+        ncols = constraints.shape[1]
+        by_code = {1: [], 2: [], 4: [], 8: []}
+        for i in range(block_count):
+            code = int(constraints[i, 4].item())
+            if code not in by_code:
+                continue
+            if ncols > 0 and constraints[i, 0] != 0:
+                continue
+            if ncols > 1 and constraints[i, 1] != 0:
+                continue
+            if ncols > 3 and constraints[i, 3] != 0:
+                continue
+            by_code[code].append(i)
+
+        moving = {i for ids in by_code.values() for i in ids}
+        if not moving:
+            return
+
+        b_adj = {i: [] for i in moving}
+        for edge_idx, (a, b, w) in enumerate(b2b_connectivity):
+            if a in moving:
+                b_adj[a].append((edge_idx, a, b, w))
+            if b in moving:
+                b_adj[b].append((edge_idx, a, b, w))
+        p_adj = {i: [] for i in moving}
+        for edge_idx, (pin, b, w) in enumerate(p2b_connectivity):
+            if b in moving and 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    p_adj[b].append((edge_idx, pin, b, w, px, py))
+
+        base_area = calculate_bbox_area(positions)
+        for code, ids in by_code.items():
+            if len(ids) < 2:
+                continue
+            axis = 1 if code in (1, 2) else 0
+            ordered = sorted(ids, key=lambda i: (positions[i][axis], i))
+            best = None
+            for pos in range(len(ordered) - 1):
+                i, j = ordered[pos], ordered[pos + 1]
+                trial = list(positions)
+                self._swap_adjacent_boundary_pair(code, i, j, trial)
+                if self._overlaps_any_except(trial[i], trial, i):
+                    continue
+                if self._overlaps_any_except(trial[j], trial, j):
+                    continue
+                if calculate_bbox_area(trial) > base_area + 1e-6:
+                    continue
+                old_wire = self._local_wire_for_ids((i, j), positions, b_adj, p_adj)
+                new_wire = self._local_wire_for_ids((i, j), trial, b_adj, p_adj)
+                delta = new_wire - old_wire
+                if delta < -1e-6 and (best is None or delta < best[0]):
+                    best = (delta, i, j, trial[i], trial[j])
+            if best is not None:
+                _delta, i, j, rect_i, rect_j = best
+                positions[i] = rect_i
+                positions[j] = rect_j
+
+    def _swap_adjacent_boundary_pair(self, code, i, j, positions) -> None:
+        xi, yi, wi, hi = positions[i]
+        xj, yj, wj, hj = positions[j]
+        if code in (1, 2):
+            start_y = min(yi, yj)
+            edge_x = xi if code == 1 else max(xi + wi, xj + wj)
+            positions[j] = (edge_x if code == 1 else edge_x - wj, start_y, wj, hj)
+            positions[i] = (edge_x if code == 1 else edge_x - wi, start_y + hj, wi, hi)
+            return
+
+        start_x = min(xi, xj)
+        edge_y = yi if code == 8 else max(yi + hi, yj + hj)
+        positions[j] = (start_x, edge_y - hj if code == 4 else edge_y, wj, hj)
+        positions[i] = (start_x + wj, edge_y - hi if code == 4 else edge_y, wi, hi)
+
+    def _local_wire_for_ids(self, ids, positions, b_adj, p_adj):
+        ids_set = set(ids)
+        total = 0.0
+        seen = set()
+
+        def center(block):
+            x, y, w, h = positions[block]
+            return x + 0.5 * w, y + 0.5 * h
+
+        for i in ids:
+            for edge_idx, a, b, weight in b_adj.get(i, ()):
+                if edge_idx in seen or a < 0 or b < 0:
+                    continue
+                seen.add(edge_idx)
+                if a in ids_set or b in ids_set:
+                    ax, ay = center(a)
+                    bx, by = center(b)
+                    total += weight * (abs(ax - bx) + abs(ay - by))
+
+        seen.clear()
+        for i in ids:
+            for edge_idx, _pin, block, weight, px, py in p_adj.get(i, ()):
+                if edge_idx in seen or block < 0:
+                    continue
+                seen.add(edge_idx)
+                bx, by = center(block)
+                total += weight * (abs(bx - px) + abs(by - py))
+        return total
 
     def _swap_wire_delta(self, i, j, positions, b_incident, p_incident, pins_pos):
         old_i = positions[i]
