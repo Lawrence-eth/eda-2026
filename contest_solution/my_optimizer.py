@@ -404,6 +404,8 @@ class MyOptimizer(FloorplanOptimizer):
             p2b_key_context = p2b_connectivity
         left_only.sort(key=lambda u: self._boundary_item_key(
             u, 1, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
+        ) if len(positions) < 120 else self._left_boundary_height_key(
+            u, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
         ))
         right_only.sort(key=lambda u: self._boundary_item_key(
             u, 1, positions, b2b_key_context, p2b_key_context, pins_pos, cluster_anchor
@@ -640,6 +642,13 @@ class MyOptimizer(FloorplanOptimizer):
             item, 0, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
         )
         return (key[0], key[1] - 0.5 * item['w'], key[2])
+
+    def _left_boundary_height_key(self, item, positions, b2b_connectivity, p2b_connectivity, pins_pos,
+                                  cluster_anchor):
+        key = self._boundary_item_key(
+            item, 1, positions, b2b_connectivity, p2b_connectivity, pins_pos, cluster_anchor
+        )
+        return (key[0], key[1] - 1.5 * item['h'], key[2])
 
     def _refine_group_translations(self, block_count, positions, constraints, area_targets,
                                    b2b_connectivity, p2b_connectivity, pins_pos) -> None:
