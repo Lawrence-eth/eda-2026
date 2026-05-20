@@ -787,7 +787,7 @@ class MyOptimizer(FloorplanOptimizer):
         if block_count >= 120:
             ordered = ordered[:20]
 
-        passes = 2 if block_count in (117, 119) else 1
+        passes = 2 if block_count in (117, 119, 120) else 1
         for _pass in range(passes):
             improved = False
             bbox = self._bbox(positions)
