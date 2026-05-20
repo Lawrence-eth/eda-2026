@@ -895,15 +895,15 @@ class MyOptimizer(FloorplanOptimizer):
         if not moving or len(moving) == len(positions):
             return
 
-        base_area = calculate_bbox_area(positions)
-        base_soft = self._soft_violation_count(positions, constraints)
-        base_wire = self._wirelength_for_blocks(moving, positions, b2b_connectivity, p2b_connectivity, pins_pos)
         current_top = max(p[1] + p[3] for p in positions)
         fixed = [i for i in range(len(positions)) if i not in set(moving)]
         target_top = max(positions[i][1] + positions[i][3] for i in fixed)
         if target_top >= current_top - 1e-6:
             return
 
+        base_area = calculate_bbox_area(positions)
+        base_soft = self._soft_violation_count(positions, constraints)
+        base_wire = self._wirelength_for_blocks(moving, positions, b2b_connectivity, p2b_connectivity, pins_pos)
         left, _bottom, right, _top = self._bbox(positions)
         trial = list(positions)
         placed = [positions[i] for i in fixed]
