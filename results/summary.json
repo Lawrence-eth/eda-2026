@@ -3,12 +3,12 @@
   "metrics": {
     "feasible_cases": "100/100",
     "total_score": 1.5297,
-    "average_cost": 3.7788,
-    "average_runtime_seconds": 1.5326,
+    "average_cost": 3.7744,
+    "average_runtime_seconds": 1.5446,
     "average_hpwl_gap": 1.5448,
     "average_area_gap": 1.5097,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.7823,
+    "worst_case_cost": 8.7994,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -30,6 +30,7 @@
     "The 120-block row-width setting was retuned to lower the dominant weighted case HPWL and bounding-box area while preserving soft violations and 100/100 feasibility.",
     "Boundary ordering uses incident-edge key caches only on 116-block and larger cases, reducing score-dominant runtime without lowering the full-run median runtime enough to hurt relative runtime scoring.",
     "A narrow equal-shape swap pass is enabled only on 117- and 119-block cases, improving HPWL where the proxy stays under the runtime cap.",
-    "The 120-block free-block shift pass checks the top 20 connectivity-weighted candidates for two passes, improving the dominant weighted case HPWL while staying below the runtime cap."
+    "The 120-block free-block shift pass checks the top 20 connectivity-weighted candidates for two passes, improving the dominant weighted case HPWL while staying below the runtime cap.",
+    "The free-block shift pass pre-resolves valid pin coordinates into its adjacency cache, preserving layouts while reducing tensor-index overhead in high-count local wirelength checks."
   ]
 }

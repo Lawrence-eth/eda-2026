@@ -780,8 +780,11 @@ class MyOptimizer(FloorplanOptimizer):
         p_adj = {i: [] for i in movable}
         for e in p2b_connectivity:
             pin, b, w = int(e[0]), int(e[1]), abs(float(e[2]))
-            if b in movable_set:
-                p_adj[b].append((pin, w))
+            if b in movable_set and 0 <= pin < len(pins_pos):
+                px = float(pins_pos[pin, 0])
+                py = float(pins_pos[pin, 1])
+                if px != -1.0 and py != -1.0:
+                    p_adj[b].append((px, py, w))
 
         degrees = self._connection_degrees(movable, b2b_connectivity, p2b_connectivity)
         ordered = sorted(movable, key=lambda i: (-degrees.get(i, 0.0), -float(area_targets[i]), i))
@@ -1097,14 +1100,10 @@ class MyOptimizer(FloorplanOptimizer):
                 total_x += w * (ox + 0.5 * ow)
                 total_y += w * (oy + 0.5 * oh)
                 weight += w
-        for pin, w in p_neighbors:
-            if 0 <= pin < len(pins_pos):
-                px = float(pins_pos[pin, 0])
-                py = float(pins_pos[pin, 1])
-                if px != -1.0 and py != -1.0:
-                    total_x += w * px
-                    total_y += w * py
-                    weight += w
+        for px, py, w in p_neighbors:
+            total_x += w * px
+            total_y += w * py
+            weight += w
         if weight <= 0.0:
             return None
         return total_x / weight, total_y / weight
@@ -1118,12 +1117,8 @@ class MyOptimizer(FloorplanOptimizer):
             if 0 <= other < len(positions):
                 ox, oy, ow, oh = positions[other]
                 total += ew * (abs(cx - (ox + 0.5 * ow)) + abs(cy - (oy + 0.5 * oh)))
-        for pin, ew in p_neighbors:
-            if 0 <= pin < len(pins_pos):
-                px = float(pins_pos[pin, 0])
-                py = float(pins_pos[pin, 1])
-                if px != -1.0 and py != -1.0:
-                    total += ew * (abs(cx - px) + abs(cy - py))
+        for px, py, ew in p_neighbors:
+            total += ew * (abs(cx - px) + abs(cy - py))
         return total
 
     def _clamp_axis_position(self, block, positions, target, axis, bbox):
