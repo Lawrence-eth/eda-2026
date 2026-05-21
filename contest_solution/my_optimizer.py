@@ -148,6 +148,10 @@ class MyOptimizer(FloorplanOptimizer):
                     self._refine_top_boundary_compaction(
                         positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                     )
+                if block_count == 119:
+                    self._refine_top_edge_inward_compaction(
+                        positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
+                    )
                 self._refine_boundary_line_shifts_118(
                     block_count, positions, constraints, area_targets,
                     b2b_edges, p2b_edges, pins_pos
@@ -1078,6 +1082,70 @@ class MyOptimizer(FloorplanOptimizer):
             return
         new_wire = self._wirelength_for_blocks(moving, trial, b2b_connectivity, p2b_connectivity, pins_pos)
         if new_wire > base_wire + 1e-6:
+            return
+        for i in moving:
+            positions[i] = trial[i]
+
+    def _refine_top_edge_inward_compaction(self, positions, constraints, area_targets,
+                                           b2b_connectivity, p2b_connectivity, pins_pos) -> None:
+        if any(p is None for p in positions):
+            return
+        if constraints is None or constraints.dim() <= 1 or constraints.shape[1] <= 4:
+            return
+
+        ncols = constraints.shape[1]
+        _left, _bottom, _right, top = self._bbox(positions)
+        moving = []
+        for i, (x, y, w, h) in enumerate(positions):
+            code = int(constraints[i, 4].item())
+            if not (code & 4):
+                continue
+            if abs(y + h - top) > 1e-6:
+                continue
+            if ncols > 1 and constraints[i, 1] != 0:
+                return
+            moving.append(i)
+        if not moving:
+            return
+
+        moving_set = set(moving)
+        max_nonmoving_top = max(
+            (p[1] + p[3] for idx, p in enumerate(positions) if idx not in moving_set),
+            default=top,
+        )
+        min_dy = max_nonmoving_top - top
+        for i in moving:
+            x, y, w, h = positions[i]
+            for j, (ox, oy, ow, oh) in enumerate(positions):
+                if j in moving_set:
+                    continue
+                if min(x + w, ox + ow) - max(x, ox) <= 1e-6:
+                    continue
+                if oy + oh <= y + 1e-6:
+                    min_dy = max(min_dy, oy + oh - y)
+        if min_dy >= -1e-6:
+            return
+
+        base_soft = self._soft_violation_count(positions, constraints)
+        base_area = calculate_bbox_area(positions)
+        base_wire = self._wirelength_for_blocks(moving, positions, b2b_connectivity, p2b_connectivity, pins_pos)
+        base_cost = self._selection_cost(positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos)
+        trial = list(positions)
+        for i in moving:
+            x, y, w, h = trial[i]
+            trial[i] = (x, y + min_dy, w, h)
+
+        if self._has_overlap(trial):
+            return
+        if self._soft_violation_count(trial, constraints) > base_soft:
+            return
+        if calculate_bbox_area(trial) >= base_area - 1e-6:
+            return
+        new_wire = self._wirelength_for_blocks(moving, trial, b2b_connectivity, p2b_connectivity, pins_pos)
+        if new_wire > base_wire + 1e-6:
+            return
+        new_cost = self._selection_cost(trial, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos)
+        if new_cost >= base_cost - 1e-6:
             return
         for i in moving:
             positions[i] = trial[i]

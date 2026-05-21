@@ -1,49 +1,117 @@
-{
-  "validation_set": "LiteTensorDataTest, 100 cases",
-  "metrics": {
-    "feasible_cases": "100/100",
-    "total_score": 1.515113,
-    "average_cost": 3.7685,
-    "average_runtime_seconds": 1.5506,
-    "average_hpwl_gap": 1.5419,
-    "average_area_gap": 1.5085,
-    "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.783,
-    "tests": "2/2 passed",
-    "official_validator": "PASSED"
-  },
-  "soft_violation_totals": {
-    "boundary": 122,
-    "grouping": 366,
-    "mib": 55
-  },
-  "notes": [
-    "Lower score is better under the contest cost function.",
-    "Large preplaced cases use obstacle-aware interior shelf packing so movable units can occupy legal gaps around preplaced rectangles instead of being forced to the right of them.",
-    "The obstacle-aware path is enabled only for 116-block and larger cases with preplaced rectangles, targeting the score-dominant range while preserving hard feasibility.",
-    "A selective second interior shift pass on 117- and 119-block cases reduces high-count HPWL while preserving hard feasibility.",
-    "Fixed-shape, non-preplaced interior blocks may participate in the guarded shift pass on 117- through 119-block cases, preserving dimensions while reducing high-count HPWL.",
-    "The 116- through 119-block shift pass also tests a guarded combined-axis move after independent axis clamps, accepting only overlap-free incident-wirelength improvements inside the existing bounding box.",
-    "A trimmed 120-block interior shift pass targets only the highest-connectivity free blocks to reduce incident wirelength without losing the runtime cap.",
-    "A guarded 120-block top-edge boundary compaction lowers the dominant weighted case area and HPWL without increasing soft violations.",
-    "The 116- through 119-block row-width settings were retuned from validation sweeps to reduce high-count HPWL and area while preserving 100/100 feasibility.",
-    "The 120-block row-width setting was retuned to lower the dominant weighted case HPWL and bounding-box area while preserving soft violations and 100/100 feasibility.",
-    "Boundary ordering uses incident-edge key caches only on 116-block and larger cases, reducing score-dominant runtime without lowering the full-run median runtime enough to hurt relative runtime scoring.",
-    "A narrow equal-shape swap pass is enabled only on 117- and 119-block cases, improving HPWL where the proxy stays under the runtime cap.",
-    "The 120-block free-block shift pass checks the top 20 connectivity-weighted candidates for two passes, improving the dominant weighted case HPWL while staying below the runtime cap.",
-    "The free-block shift pass pre-resolves valid pin coordinates into its adjacency cache, preserving layouts while reducing tensor-index overhead in high-count local wirelength checks.",
-    "A bounded 120-block equal-shape swap probe accepts up to two meaningful HPWL-improving swaps while preserving soft violations and bounding-box area.",
-    "A 118-block-only boundary-line shift refinement moves same-edge boundary rows or columns only when local wirelength improves without overlaps, bbox growth, or soft-violation increase.",
-    "The 118-block cluster-local width is retuned to reduce weighted HPWL with only a tiny area tradeoff.",
-    "The 119-block grouped-boundary ordering falls back to the net-aware key when it preserves soft counts and improves the high-weight HPWL proxy.",
-    "A right-edge boundary ordering bias for 119- and 120-block cases favors taller items when net-aware keys are close, improving the two highest-weight HPWL proxies without changing soft violations.",
-    "A bottom-edge boundary ordering bias for 119- and 120-block cases favors wider items slightly, improving the dominant 120-block HPWL proxy without changing soft violations.",
-    "A 120-block-only left-edge boundary ordering bias favors taller items, improving the dominant case HPWL while leaving the 119- and 118-block proxies unchanged.",
-    "A 116- through 119-block adjacent boundary wire-swap pass applies up to two same-edge local swaps per side when incident wirelength improves without overlaps or bbox growth, while preserving the 120-block incumbent path.",
-    "Top-edge boundary ordering on 119- and 120-block cases uses the same slight width-aware bias as bottom-edge ordering, preserving public tail geometry while improving the exact weighted score.",
-    "The 120-block top-boundary compaction pass now exits before soft-count and wirelength work when no compaction is geometrically possible, preserving layouts while reducing score-dominant runtime.",
-    "Fixed-shape, non-preplaced interior blocks may participate in the guarded 120-block shift pass, preserving dimensions while reducing the dominant weighted case HPWL.",
-    "The adjacent boundary wire-swap refiner exits on 120-block cases after profiling showed no accepted moves on the dominant proxy, preserving geometry while reducing score-dominant runtime.",
-    "Dead rollback bookkeeping was removed from the 116- through 119-block adjacent boundary swap path after the 120-block path was disabled, preserving placements while trimming high-count overhead."
-  ]
-}
+# FloorSet result analysis
+Result file: results/boundary_full.json
+Total score: 1.513808
+Feasible: 100/100
+
+## Worst cases by raw cost
+- test_id= 72 blocks= 93 cost= 8.8067 weighted=1.046e-11 hpwl= 1.8925 area= 2.2285 soft= 0.0702 boundary=1 grouping=3 mib=0 soft_count=4/57 runtime=12.228s constraints=boundary:33 cluster:24/4 mib:5/1 preplaced:2 nets:1729/2057
+- test_id= 77 blocks= 98 cost= 8.5309 weighted=1.504e-09 hpwl= 1.6440 area= 2.0342 soft= 0.0755 boundary=1 grouping=2 mib=1 soft_count=4/53 runtime=13.635s constraints=boundary:29 cluster:23/4 mib:6/1 preplaced:3 nets:4705/642
+- test_id= 76 blocks= 97 cost= 8.3260 weighted=5.401e-10 hpwl= 2.1623 area= 1.8977 soft= 0.2203 boundary=2 grouping=10 mib=1 soft_count=13/59 runtime= 3.853s constraints=boundary:27 cluster:31/4 mib:6/1 preplaced:4 nets:658/2054
+- test_id= 74 blocks= 95 cost= 8.0773 weighted=7.091e-11 hpwl= 2.2676 area= 1.9162 soft= 0.1061 boundary=3 grouping=3 mib=1 soft_count=7/66 runtime= 6.975s constraints=boundary:35 cluster:31/4 mib:5/1 preplaced:4 nets:451/1875
+- test_id= 64 blocks= 85 cost= 8.0475 weighted=3.207e-15 hpwl= 2.0088 area= 2.4811 soft= 0.1964 boundary=3 grouping=7 mib=1 soft_count=11/56 runtime= 3.210s constraints=boundary:26 cluster:28/4 mib:7/1 preplaced:3 nets:722/1702
+- test_id= 69 blocks= 90 cost= 7.3454 weighted=4.345e-13 hpwl= 1.7955 area= 2.0262 soft= 0.1538 boundary=2 grouping=5 mib=1 soft_count=8/52 runtime= 4.518s constraints=boundary:27 cluster:27/4 mib:3/1 preplaced:6 nets:1701/426
+- test_id= 78 blocks= 99 cost= 7.1457 weighted=3.425e-09 hpwl= 1.3503 area= 1.0268 soft= 0.0984 boundary=1 grouping=5 mib=0 soft_count=6/61 runtime=15.440s constraints=boundary:31 cluster:31/4 mib:4/1 preplaced:1 nets:4802/1746
+- test_id= 59 blocks= 80 cost= 7.0980 weighted=1.906e-17 hpwl= 1.4863 area= 1.5609 soft= 0.2449 boundary=3 grouping=8 mib=1 soft_count=12/49 runtime= 3.535s constraints=boundary:26 cluster:20/3 mib:7/1 preplaced:5 nets:3136/234
+- test_id= 70 blocks= 91 cost= 7.0155 weighted=1.128e-12 hpwl= 1.8162 area= 1.8374 soft= 0.2034 boundary=2 grouping=9 mib=1 soft_count=12/59 runtime= 3.072s constraints=boundary:27 cluster:30/4 mib:7/1 preplaced:7 nets:496/1498
+- test_id= 57 blocks= 78 cost= 6.8097 weighted=2.475e-18 hpwl= 1.7525 area= 2.4132 soft= 0.1000 boundary=3 grouping=1 mib=0 soft_count=4/40 runtime= 4.151s constraints=boundary:25 cluster:15/3 mib:4/1 preplaced:3 nets:1216/1380
+- test_id= 61 blocks= 82 cost= 6.2560 weighted=1.241e-16 hpwl= 2.0047 area= 2.2794 soft= 0.1304 boundary=2 grouping=4 mib=0 soft_count=6/46 runtime= 2.398s constraints=boundary:22 cluster:23/4 mib:6/1 preplaced:7 nets:336/1367
+- test_id= 51 blocks= 72 cost= 6.2188 weighted=5.602e-21 hpwl= 1.7220 area= 2.3284 soft= 0.0784 boundary=2 grouping=2 mib=0 soft_count=4/51 runtime= 3.772s constraints=boundary:27 cluster:23/4 mib:6/1 preplaced:4 nets:311/1539
+- test_id= 71 blocks= 92 cost= 5.9548 weighted=2.603e-12 hpwl= 1.7552 area= 0.8642 soft= 0.0980 boundary=1 grouping=3 mib=1 soft_count=5/51 runtime= 7.041s constraints=boundary:27 cluster:21/3 mib:7/1 preplaced:1 nets:1692/1738
+- test_id= 68 blocks= 89 cost= 5.9190 weighted=1.288e-13 hpwl= 1.7369 area= 2.0914 soft= 0.1346 boundary=3 grouping=4 mib=0 soft_count=7/52 runtime= 2.492s constraints=boundary:26 cluster:28/4 mib:3/1 preplaced:5 nets:475/1089
+- test_id= 73 blocks= 94 cost= 5.8914 weighted=1.903e-11 hpwl= 1.5600 area= 1.1140 soft= 0.0714 boundary=0 grouping=4 mib=0 soft_count=4/56 runtime= 7.802s constraints=boundary:28 cluster:30/4 mib:3/1 preplaced:1 nets:1767/2200
+- test_id= 25 blocks= 46 cost= 5.6434 weighted=2.597e-32 hpwl= 2.2904 area= 2.8531 soft= 0.2647 boundary=3 grouping=6 mib=0 soft_count=9/34 runtime= 0.453s constraints=boundary:17 cluster:18/4 mib:4/1 preplaced:3 nets:444/149
+- test_id= 31 blocks= 52 cost= 5.6333 weighted=1.046e-29 hpwl= 1.9428 area= 1.7892 soft= 0.1750 boundary=1 grouping=5 mib=1 soft_count=7/40 runtime= 1.706s constraints=boundary:20 cluster:18/4 mib:7/1 preplaced:2 nets:540/754
+- test_id= 75 blocks= 96 cost= 5.5599 weighted=1.327e-10 hpwl= 1.6671 area= 1.8827 soft= 0.1034 boundary=1 grouping=5 mib=0 soft_count=6/58 runtime= 2.931s constraints=boundary:30 cluster:29/4 mib:4/1 preplaced:4 nets:645/497
+- test_id= 49 blocks= 70 cost= 5.4897 weighted=6.693e-22 hpwl= 1.8511 area= 2.3502 soft= 0.1875 boundary=2 grouping=6 mib=1 soft_count=9/48 runtime= 1.108s constraints=boundary:25 cluster:24/4 mib:4/1 preplaced:4 nets:588/248
+- test_id= 46 blocks= 67 cost= 5.4894 weighted=3.332e-23 hpwl= 1.6048 area= 2.4290 soft= 0.0682 boundary=0 grouping=2 mib=1 soft_count=3/44 runtime= 2.689s constraints=boundary:22 cluster:20/4 mib:7/1 preplaced:2 nets:224/1276
+- test_id= 53 blocks= 74 cost= 5.2473 weighted=3.493e-20 hpwl= 1.5748 area= 1.9445 soft= 0.1591 boundary=2 grouping=4 mib=1 soft_count=7/44 runtime= 1.699s constraints=boundary:23 cluster:18/3 mib:7/1 preplaced:4 nets:1149/287
+- test_id= 48 blocks= 69 cost= 5.2189 weighted=2.341e-22 hpwl= 1.7782 area= 1.9585 soft= 0.0800 boundary=1 grouping=3 mib=0 soft_count=4/50 runtime= 2.485s constraints=boundary:26 cluster:23/4 mib:6/1 preplaced:3 nets:523/915
+- test_id= 55 blocks= 76 cost= 5.1535 weighted=2.535e-19 hpwl= 1.5154 area= 1.4741 soft= 0.1875 boundary=0 grouping=8 mib=1 soft_count=9/48 runtime= 1.853s constraints=boundary:23 cluster:24/4 mib:6/1 preplaced:3 nets:1155/912
+- test_id= 52 blocks= 73 cost= 5.0573 weighted=1.238e-20 hpwl= 1.5436 area= 1.9910 soft= 0.1957 boundary=2 grouping=6 mib=1 soft_count=9/46 runtime= 1.167s constraints=boundary:26 cluster:18/3 mib:6/1 preplaced:4 nets:586/246
+- test_id= 65 blocks= 86 cost= 5.0365 weighted=5.457e-15 hpwl= 1.5101 area= 1.2713 soft= 0.1667 boundary=1 grouping=8 mib=0 soft_count=9/54 runtime= 2.273s constraints=boundary:28 cluster:28/4 mib:3/1 preplaced:5 nets:443/1362
+- test_id= 63 blocks= 84 cost= 4.6063 weighted=6.754e-16 hpwl= 1.5568 area= 2.0246 soft= 0.1277 boundary=4 grouping=1 mib=1 soft_count=6/47 runtime= 1.307s constraints=boundary:25 cluster:24/4 mib:3/1 preplaced:4 nets:776/260
+- test_id= 30 blocks= 51 cost= 4.6036 weighted=3.145e-30 hpwl= 1.7820 area= 0.8958 soft= 0.2821 boundary=1 grouping=9 mib=1 soft_count=11/39 runtime= 0.840s constraints=boundary:20 cluster:19/4 mib:5/1 preplaced:1 nets:520/497
+- test_id= 45 blocks= 66 cost= 4.5775 weighted=1.022e-23 hpwl= 1.7955 area= 2.3536 soft= 0.0465 boundary=1 grouping=0 mib=1 soft_count=2/43 runtime= 1.592s constraints=boundary:20 cluster:22/4 mib:6/1 preplaced:3 nets:522/683
+- test_id= 67 blocks= 88 cost= 4.5599 weighted=3.650e-14 hpwl= 2.0096 area= 1.0406 soft= 0.1373 boundary=1 grouping=5 mib=1 soft_count=7/51 runtime= 1.654s constraints=boundary:29 cluster:24/4 mib:3/1 preplaced:1 nets:387/515
+- test_id= 66 blocks= 87 cost= 4.4505 weighted=1.311e-14 hpwl= 1.9227 area= 1.7456 soft= 0.1000 boundary=1 grouping=3 mib=1 soft_count=5/50 runtime= 1.331s constraints=boundary:25 cluster:23/3 mib:6/1 preplaced:2 nets:529/291
+
+## Worst cases by weighted contribution
+- test_id= 99 blocks=120 cost= 1.4743 weighted= 0.931939 hpwl= 0.9468 area= 0.6815 soft= 0.0746 boundary=2 grouping=3 mib=0 soft_count=5/67 runtime= 0.171s constraints=boundary:36 cluster:28/3 mib:7/1 preplaced:6 nets:7056/3524
+- test_id= 98 blocks=119 cost= 1.5746 weighted= 0.366174 hpwl= 1.1738 area= 0.6513 soft= 0.0769 boundary=0 grouping=4 mib=0 soft_count=4/52 runtime= 0.180s constraints=boundary:31 cluster:21/3 mib:4/1 preplaced:7 nets:1699/908
+- test_id= 97 blocks=118 cost= 1.5632 weighted= 0.133732 hpwl= 0.8328 area= 0.7041 soft= 0.1167 boundary=2 grouping=4 mib=1 soft_count=7/60 runtime= 0.156s constraints=boundary:33 cluster:27/3 mib:4/1 preplaced:3 nets:2784/3299
+- test_id= 96 blocks=117 cost= 1.5099 weighted= 0.047519 hpwl= 0.8855 area= 0.7012 soft= 0.0923 boundary=0 grouping=5 mib=1 soft_count=6/65 runtime= 0.135s constraints=boundary:33 cluster:33/4 mib:4/1 preplaced:1 nets:6707/93
+- test_id= 95 blocks=116 cost= 1.6867 weighted= 0.019528 hpwl= 1.3942 area= 0.7474 soft= 0.0758 boundary=1 grouping=3 mib=1 soft_count=5/66 runtime= 0.117s constraints=boundary:37 cluster:26/3 mib:7/1 preplaced:6 nets:1345/4181
+- test_id= 94 blocks=115 cost= 2.1521 weighted= 0.009166 hpwl= 1.9640 area= 1.6425 soft= 0.0462 boundary=1 grouping=2 mib=0 soft_count=3/65 runtime= 0.065s constraints=boundary:35 cluster:32/4 mib:3/1 preplaced:5 nets:661/2863
+- test_id= 93 blocks=114 cost= 2.3664 weighted= 0.003708 hpwl= 1.8730 area= 2.2644 soft= 0.0484 boundary=2 grouping=1 mib=0 soft_count=3/62 runtime= 0.052s constraints=boundary:34 cluster:30/4 mib:3/1 preplaced:3 nets:1299/652
+- test_id= 92 blocks=113 cost= 2.2882 weighted= 0.001319 hpwl= 2.1009 area= 1.1758 soft= 0.1071 boundary=1 grouping=5 mib=0 soft_count=6/56 runtime= 0.046s constraints=boundary:33 cluster:23/3 mib:4/1 preplaced:2 nets:766/1153
+- test_id= 91 blocks=112 cost= 1.7983 weighted= 0.000381 hpwl= 1.2326 area= 0.9452 soft= 0.1034 boundary=1 grouping=4 mib=1 soft_count=6/58 runtime= 0.087s constraints=boundary:33 cluster:23/3 mib:6/1 preplaced:1 nets:6146/695
+- test_id= 90 blocks=111 cost= 2.5817 weighted= 0.000201 hpwl= 1.5852 area= 1.7001 soft= 0.1667 boundary=2 grouping=8 mib=1 soft_count=11/66 runtime= 0.042s constraints=boundary:29 cluster:35/4 mib:7/1 preplaced:5 nets:2464/50
+- test_id= 89 blocks=110 cost= 3.2745 weighted=9.397e-05 hpwl= 2.1258 area= 2.2891 soft= 0.1887 boundary=5 grouping=5 mib=0 soft_count=10/53 runtime= 0.056s constraints=boundary:29 cluster:25/3 mib:3/1 preplaced:9 nets:1452/2799
+- test_id= 88 blocks=109 cost= 3.0014 weighted=3.169e-05 hpwl= 1.8569 area= 1.9213 soft= 0.1587 boundary=3 grouping=6 mib=1 soft_count=10/63 runtime= 0.227s constraints=boundary:36 cluster:25/3 mib:6/1 preplaced:6 nets:1425/841
+- test_id= 87 blocks=108 cost= 2.4422 weighted=9.485e-06 hpwl= 1.6686 area= 1.2828 soft= 0.1395 boundary=1 grouping=4 mib=1 soft_count=6/43 runtime= 0.217s constraints=boundary:26 cluster:17/3 mib:4/1 preplaced:2 nets:1283/852
+- test_id= 86 blocks=107 cost= 2.9112 weighted=4.160e-06 hpwl= 1.7975 area= 1.5063 soft= 0.1091 boundary=2 grouping=3 mib=1 soft_count=6/55 runtime= 0.380s constraints=boundary:27 cluster:28/4 mib:5/1 preplaced:5 nets:2289/2399
+- test_id= 85 blocks=106 cost= 2.5975 weighted=1.365e-06 hpwl= 1.8552 area= 1.7197 soft= 0.0625 boundary=0 grouping=3 mib=1 soft_count=4/64 runtime= 0.300s constraints=boundary:32 cluster:30/4 mib:7/1 preplaced:3 nets:2359/982
+- test_id= 84 blocks=105 cost= 2.3322 weighted=4.510e-07 hpwl= 1.4790 area= 1.3941 soft= 0.1290 boundary=0 grouping=7 mib=1 soft_count=8/62 runtime= 0.211s constraints=boundary:31 cluster:32/4 mib:4/1 preplaced:1 nets:1102/712
+- test_id= 83 blocks=104 cost= 2.6211 weighted=1.865e-07 hpwl= 2.1908 area= 2.0055 soft= 0.0727 boundary=1 grouping=2 mib=1 soft_count=4/55 runtime= 0.203s constraints=boundary:31 cluster:25/3 mib:3/1 preplaced:3 nets:1081/613
+- test_id= 82 blocks=103 cost= 2.9780 weighted=7.793e-08 hpwl= 1.8300 area= 1.7507 soft= 0.0847 boundary=0 grouping=5 mib=0 soft_count=5/59 runtime= 0.407s constraints=boundary:28 cluster:32/4 mib:4/1 preplaced:2 nets:2227/2943
+- test_id= 81 blocks=102 cost= 1.7075 weighted=1.644e-08 hpwl= 1.2377 area= 1.1093 soft= 0.0517 boundary=0 grouping=3 mib=0 soft_count=3/58 runtime= 0.183s constraints=boundary:34 cluster:24/3 mib:4/1 preplaced:1 nets:2184/45
+- test_id= 80 blocks=101 cost= 2.6483 weighted=9.379e-09 hpwl= 1.4438 area= 1.6307 soft= 0.1587 boundary=0 grouping=9 mib=1 soft_count=10/63 runtime= 0.231s constraints=boundary:30 cluster:32/4 mib:6/1 preplaced:3 nets:4998/40
+- test_id= 78 blocks= 99 cost= 7.1457 weighted=3.425e-09 hpwl= 1.3503 area= 1.0268 soft= 0.0984 boundary=1 grouping=5 mib=0 soft_count=6/61 runtime=15.440s constraints=boundary:31 cluster:31/4 mib:4/1 preplaced:1 nets:4802/1746
+- test_id= 79 blocks=100 cost= 2.5429 weighted=3.313e-09 hpwl= 1.5927 area= 2.0400 soft= 0.1273 boundary=4 grouping=3 mib=0 soft_count=7/55 runtime= 0.126s constraints=boundary:30 cluster:24/3 mib:5/1 preplaced:7 nets:700/75
+- test_id= 77 blocks= 98 cost= 8.5309 weighted=1.504e-09 hpwl= 1.6440 area= 2.0342 soft= 0.0755 boundary=1 grouping=2 mib=1 soft_count=4/53 runtime=13.635s constraints=boundary:29 cluster:23/4 mib:6/1 preplaced:3 nets:4705/642
+- test_id= 76 blocks= 97 cost= 8.3260 weighted=5.401e-10 hpwl= 2.1623 area= 1.8977 soft= 0.2203 boundary=2 grouping=10 mib=1 soft_count=13/59 runtime= 3.853s constraints=boundary:27 cluster:31/4 mib:6/1 preplaced:4 nets:658/2054
+- test_id= 75 blocks= 96 cost= 5.5599 weighted=1.327e-10 hpwl= 1.6671 area= 1.8827 soft= 0.1034 boundary=1 grouping=5 mib=0 soft_count=6/58 runtime= 2.931s constraints=boundary:30 cluster:29/4 mib:4/1 preplaced:4 nets:645/497
+- test_id= 74 blocks= 95 cost= 8.0773 weighted=7.091e-11 hpwl= 2.2676 area= 1.9162 soft= 0.1061 boundary=3 grouping=3 mib=1 soft_count=7/66 runtime= 6.975s constraints=boundary:35 cluster:31/4 mib:5/1 preplaced:4 nets:451/1875
+- test_id= 73 blocks= 94 cost= 5.8914 weighted=1.903e-11 hpwl= 1.5600 area= 1.1140 soft= 0.0714 boundary=0 grouping=4 mib=0 soft_count=4/56 runtime= 7.802s constraints=boundary:28 cluster:30/4 mib:3/1 preplaced:1 nets:1767/2200
+- test_id= 72 blocks= 93 cost= 8.8067 weighted=1.046e-11 hpwl= 1.8925 area= 2.2285 soft= 0.0702 boundary=1 grouping=3 mib=0 soft_count=4/57 runtime=12.228s constraints=boundary:33 cluster:24/4 mib:5/1 preplaced:2 nets:1729/2057
+- test_id= 71 blocks= 92 cost= 5.9548 weighted=2.603e-12 hpwl= 1.7552 area= 0.8642 soft= 0.0980 boundary=1 grouping=3 mib=1 soft_count=5/51 runtime= 7.041s constraints=boundary:27 cluster:21/3 mib:7/1 preplaced:1 nets:1692/1738
+- test_id= 70 blocks= 91 cost= 7.0155 weighted=1.128e-12 hpwl= 1.8162 area= 1.8374 soft= 0.2034 boundary=2 grouping=9 mib=1 soft_count=12/59 runtime= 3.072s constraints=boundary:27 cluster:30/4 mib:7/1 preplaced:7 nets:496/1498
+
+## Aggregate averages by block-count range
+- 21-40: cases=20, feasible=20/20, avg_cost=2.3893, score_contribution=4.100e-35, score_share=0.00%, weight_share=0.00%, top_weighted_case=19, avg_hpwl=1.2761, avg_area=1.1958, avg_soft=0.1522, avg_runtime=0.252s
+- 41-60: cases=20, feasible=20/20, avg_cost=3.6148, score_contribution=2.913e-26, score_share=0.00%, weight_share=0.00%, top_weighted_case=39, avg_hpwl=1.5918, avg_area=1.5648, avg_soft=0.1342, avg_runtime=0.805s
+- 61-80: cases=20, feasible=20/20, avg_cost=4.4656, score_contribution=2.631e-17, score_share=0.00%, weight_share=0.00%, top_weighted_case=59, avg_hpwl=1.5341, avg_area=1.6586, avg_soft=0.1115, avg_runtime=1.728s
+- 81-100: cases=20, feasible=20/20, avg_cost=6.1138, score_contribution=9.020e-09, score_share=0.00%, weight_share=0.00%, top_weighted_case=78, avg_hpwl=1.7333, avg_area=1.7303, avg_soft=0.1263, avg_runtime=4.820s
+- 101-120: cases=20, feasible=20/20, avg_cost=2.2755, score_contribution=1.513808, score_share=100.00%, weight_share=100.00%, top_weighted_case=99, avg_hpwl=1.5737, avg_area=1.3911, avg_soft=0.1032, avg_runtime=0.173s
+
+## Score concentration
+- top_1: test_ids=99, weight_share=63.21%, score_share=61.56%, avg_cost=1.4743, avg_hpwl=0.9468, avg_area=0.6815, avg_soft=0.0746
+- top_3: test_ids=99,98,97, weight_share=95.02%, score_share=94.59%, avg_cost=1.5374, avg_hpwl=0.9844, avg_area=0.6789, avg_soft=0.0894
+- top_5: test_ids=99,98,97,96,95, weight_share=99.33%, score_share=99.01%, avg_cost=1.5618, avg_hpwl=1.0466, avg_area=0.6971, avg_soft=0.0873
+- top_10: test_ids=99,98,97,96,95,94,93,92,91,90, weight_share=100.00%, score_share=99.99%, avg_cost=1.8995, avg_hpwl=1.3989, avg_area=1.1214, avg_soft=0.0908
+- top_20: test_ids=99,98,97,96,95,94,93,92,91,90,89,88,87,86,85,84,83,82,81,80, weight_share=100.00%, score_share=100.00%, avg_cost=2.2755, avg_hpwl=1.5737, avg_area=1.3911, avg_soft=0.1032
+
+## Constraint profile for weighted focus cases
+- focus_cases=20, avg_boundary_blocks=31.90, avg_cluster_blocks=27.40, avg_cluster_groups=3.45, avg_mib_blocks=4.75, avg_preplaced=3.70, avg_b2b_edges=2566.3, avg_p2b_edges=1482.2
+- boundary_code_totals=1:223, 2:148, 8:105, 4:82, 5:20, 6:20, 9:20, 10:20
+
+## Soft-constraint violation totals
+- boundary=122, grouping=366, mib=55, total=543/4478
+
+## Weighted metric pressure
+- Estimated total-score reduction if every case improved by: HPWL -0.1 => 0.041100, area -0.1 => 0.041100, soft ratio -0.01 => 0.030276
+- Score-weighted soft counts: grouping=3.375, boundary=1.455, mib=0.129
+- Highest-impact local sensitivities:
+  test_id= 99 blocks=120 score_weight=0.632121 cost=1.4743 gain_if_hpwl_or_area_-0.1=0.025686 gain_if_soft_-0.01=0.018639 hpwl=0.9468 area=0.6815 soft=0.0746
+  test_id= 98 blocks=119 score_weight=0.232544 cost=1.5746 gain_if_hpwl_or_area_-0.1=0.009573 gain_if_soft_-0.01=0.007323 hpwl=1.1738 area=0.6513 soft=0.0769
+  test_id= 97 blocks=118 score_weight=0.085548 cost=1.5632 gain_if_hpwl_or_area_-0.1=0.003781 gain_if_soft_-0.01=0.002675 hpwl=0.8328 area=0.7041 soft=0.1167
+  test_id= 96 blocks=117 score_weight=0.031471 cost=1.5099 gain_if_hpwl_or_area_-0.1=0.001325 gain_if_soft_-0.01=0.000950 hpwl=0.8855 area=0.7012 soft=0.0923
+  test_id= 95 blocks=116 score_weight=0.011578 cost=1.6867 gain_if_hpwl_or_area_-0.1=0.000472 gain_if_soft_-0.01=0.000391 hpwl=1.3942 area=0.7474 soft=0.0758
+  test_id= 94 blocks=115 score_weight=0.004259 cost=2.1521 gain_if_hpwl_or_area_-0.1=0.000163 gain_if_soft_-0.01=0.000183 hpwl=1.9640 area=1.6425 soft=0.0462
+  test_id= 93 blocks=114 score_weight=0.001567 cost=2.3664 gain_if_hpwl_or_area_-0.1=6.041e-05 gain_if_soft_-0.01=7.416e-05 hpwl=1.8730 area=2.2644 soft=0.0484
+  test_id= 92 blocks=113 score_weight=0.000576 cost=2.2882 gain_if_hpwl_or_area_-0.1=2.500e-05 gain_if_soft_-0.01=2.638e-05 hpwl=2.1009 area=1.1758 soft=0.1071
+  test_id= 91 blocks=112 score_weight=0.000212 cost=1.7983 gain_if_hpwl_or_area_-0.1=9.128e-06 gain_if_soft_-0.01=7.627e-06 hpwl=1.2326 area=0.9452 soft=0.1034
+  test_id= 90 blocks=111 score_weight=0.000078 cost=2.5817 gain_if_hpwl_or_area_-0.1=3.811e-06 gain_if_soft_-0.01=4.028e-06 hpwl=1.5852 area=1.7001 soft=0.1667
+  test_id= 89 blocks=110 score_weight=0.000029 cost=3.2745 gain_if_hpwl_or_area_-0.1=1.465e-06 gain_if_soft_-0.01=1.879e-06 hpwl=2.1258 area=2.2891 soft=0.1887
+  test_id= 88 blocks=109 score_weight=0.000011 cost=3.0014 gain_if_hpwl_or_area_-0.1=5.484e-07 gain_if_soft_-0.01=6.337e-07 hpwl=1.8569 area=1.9213 soft=0.1587
+  test_id= 87 blocks=108 score_weight=0.000004 cost=2.4422 gain_if_hpwl_or_area_-0.1=1.916e-07 gain_if_soft_-0.01=1.897e-07 hpwl=1.6686 area=1.2828 soft=0.1395
+  test_id= 86 blocks=107 score_weight=0.000001 cost=2.9112 gain_if_hpwl_or_area_-0.1=7.843e-08 gain_if_soft_-0.01=8.319e-08 hpwl=1.7975 area=1.5063 soft=0.1091
+  test_id= 85 blocks=106 score_weight=0.000001 cost=2.5975 gain_if_hpwl_or_area_-0.1=2.449e-08 gain_if_soft_-0.01=2.731e-08 hpwl=1.8552 area=1.7197 soft=0.0625
+  test_id= 84 blocks=105 score_weight=0.000000 cost=2.3322 gain_if_hpwl_or_area_-0.1=9.254e-09 gain_if_soft_-0.01=9.020e-09 hpwl=1.4790 area=1.3941 soft=0.1290
+  test_id= 83 blocks=104 score_weight=0.000000 cost=2.6211 gain_if_hpwl_or_area_-0.1=3.009e-09 gain_if_soft_-0.01=3.729e-09 hpwl=2.1908 area=2.0055 soft=0.0727
+  test_id= 82 blocks=103 score_weight=0.000000 cost=2.9780 gain_if_hpwl_or_area_-0.1=1.396e-09 gain_if_soft_-0.01=1.559e-09 hpwl=1.8300 area=1.7507 soft=0.0847
+  test_id= 81 blocks=102 score_weight=0.000000 cost=1.7075 gain_if_hpwl_or_area_-0.1=3.782e-10 gain_if_soft_-0.01=3.288e-10 hpwl=1.2377 area=1.1093 soft=0.0517
+  test_id= 80 blocks=101 score_weight=0.000000 cost=2.6483 gain_if_hpwl_or_area_-0.1=1.848e-10 gain_if_soft_-0.01=1.876e-10 hpwl=1.4438 area=1.6307 soft=0.1587
+
+## Recommendation
+- Weighted worst-case averages: hpwl=1.5737, area=1.3911, soft=0.1032, runtime=0.173s. Dominant score range: 101-120 (100.00% of reconstructed score). Suggested next target: combined HPWL and area improvement, while preserving current soft-constraint gains; high boundary density makes perimeter ordering/packing especially important; cluster packing remains a meaningful interaction with area/HPWL.
