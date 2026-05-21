@@ -3,12 +3,12 @@
   "metrics": {
     "feasible_cases": "100/100",
     "total_score": 1.515113,
-    "average_cost": 3.777,
-    "average_runtime_seconds": 1.5491,
+    "average_cost": 3.7685,
+    "average_runtime_seconds": 1.5506,
     "average_hpwl_gap": 1.5419,
     "average_area_gap": 1.5085,
     "average_soft_violation_ratio": 0.1255,
-    "worst_case_cost": 8.7967,
+    "worst_case_cost": 8.783,
     "tests": "2/2 passed",
     "official_validator": "PASSED"
   },
@@ -43,6 +43,7 @@
     "Top-edge boundary ordering on 119- and 120-block cases uses the same slight width-aware bias as bottom-edge ordering, preserving public tail geometry while improving the exact weighted score.",
     "The 120-block top-boundary compaction pass now exits before soft-count and wirelength work when no compaction is geometrically possible, preserving layouts while reducing score-dominant runtime.",
     "Fixed-shape, non-preplaced interior blocks may participate in the guarded 120-block shift pass, preserving dimensions while reducing the dominant weighted case HPWL.",
-    "The adjacent boundary wire-swap refiner exits on 120-block cases after profiling showed no accepted moves on the dominant proxy, preserving geometry while reducing score-dominant runtime."
+    "The adjacent boundary wire-swap refiner exits on 120-block cases after profiling showed no accepted moves on the dominant proxy, preserving geometry while reducing score-dominant runtime.",
+    "Dead rollback bookkeeping was removed from the 116- through 119-block adjacent boundary swap path after the 120-block path was disabled, preserving placements while trimming high-count overhead."
   ]
 }

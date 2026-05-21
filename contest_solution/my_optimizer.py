@@ -157,8 +157,7 @@ class MyOptimizer(FloorplanOptimizer):
                     b2b_edges, p2b_edges, pins_pos
                 )
                 self._refine_boundary_adjacent_wire_swaps(
-                    block_count, positions, constraints, area_targets,
-                    b2b_edges, p2b_edges, pins_pos
+                    block_count, positions, constraints, b2b_edges, p2b_edges, pins_pos
                 )
 
         if self._has_overlap([p for p in positions if p is not None]):
@@ -1317,7 +1316,7 @@ class MyOptimizer(FloorplanOptimizer):
             for i, rect in enumerate(base_positions):
                 positions[i] = rect
 
-    def _refine_boundary_adjacent_wire_swaps(self, block_count, positions, constraints, area_targets,
+    def _refine_boundary_adjacent_wire_swaps(self, block_count, positions, constraints,
                                              b2b_connectivity, p2b_connectivity, pins_pos) -> None:
         if block_count < 116 or block_count >= 120 or any(p is None for p in positions):
             return
@@ -1342,11 +1341,6 @@ class MyOptimizer(FloorplanOptimizer):
         if not moving:
             return
 
-        base_positions = list(positions)
-        base_soft = self._soft_violation_count(base_positions, constraints)
-        base_cost = self._selection_cost(
-            base_positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
-        ) if block_count >= 120 else None
         b_adj = {i: [] for i in moving}
         for edge_idx, (a, b, w) in enumerate(b2b_connectivity):
             if a in moving:
@@ -1389,15 +1383,6 @@ class MyOptimizer(FloorplanOptimizer):
                 _delta, i, j, rect_i, rect_j = best
                 positions[i] = rect_i
                 positions[j] = rect_j
-
-        if block_count >= 120:
-            new_soft = self._soft_violation_count(positions, constraints)
-            new_cost = self._selection_cost(
-                positions, constraints, area_targets, b2b_connectivity, p2b_connectivity, pins_pos
-            )
-            if new_soft > base_soft or new_cost >= base_cost - 1e-6:
-                for i, rect in enumerate(base_positions):
-                    positions[i] = rect
 
     def _swap_adjacent_boundary_pair(self, code, i, j, positions) -> None:
         xi, yi, wi, hi = positions[i]
