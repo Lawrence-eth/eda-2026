@@ -148,7 +148,7 @@ class MyOptimizer(FloorplanOptimizer):
                     self._refine_top_boundary_compaction(
                         positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                     )
-                if 116 <= block_count <= 119:
+                if 110 <= block_count <= 119:
                     self._refine_boundary_edge_inward_compactions(
                         positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                     )
@@ -162,6 +162,10 @@ class MyOptimizer(FloorplanOptimizer):
                 )
                 self._refine_boundary_adjacent_wire_swaps(
                     block_count, positions, constraints, b2b_edges, p2b_edges, pins_pos
+                )
+            elif 110 <= block_count <= 115:
+                self._refine_boundary_edge_inward_compactions(
+                    positions, constraints, area_targets, b2b_edges, p2b_edges, pins_pos
                 )
 
         if self._has_overlap([p for p in positions if p is not None]):
